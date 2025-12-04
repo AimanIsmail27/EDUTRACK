@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EduTrack - Login</title>
 
     <style>
-        /* Define a consistent primary color palette */
         :root {
-            --primary-color: #4f46e5; /* Indigo/Blue for accents */
+            --primary: #4f46e5;
             --primary-hover: #4338ca;
-            --background-main: #d9d9d9; /* The requested main background color */
-            --card-background: white;
-            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --text-dark: #222;
+            --bg-gray: #f3f4f6;
+            --danger: #e3342f; /* Added danger color for errors */
         }
 
         body {
             margin: 0;
             padding: 0;
-            /* Use the system background color */
-            background: var(--background-main);
-            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            min-height: 100vh;
+            font-family: "Segoe UI", Roboto, Arial, sans-serif;
+            background: var(--bg-gray);
+            height: 100vh;
+            overflow: hidden;
         }
 
         .container {
@@ -30,188 +30,271 @@
             width: 100%;
         }
 
-        /* --- LEFT SIDE (Branding) --- */
+        /* LEFT SECTION */
         .left {
-            flex: 1.2;
+            flex: 1.25;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            /* The left side uses the main background color */
-            background: var(--background-main); 
-            color: #333; /* Darker text for contrast on gray */
-            padding: 30px;
-        }
-        
-        .left h1 {
-            font-size: 4.5rem;
-            font-weight: 800;
-            letter-spacing: -1px;
-            margin-bottom: 10px;
-            color: var(--primary-color); /* Use primary color for the logo */
-        }
-        
-        .left p {
-            font-size: 1.25rem;
-            font-weight: 400;
-            opacity: 0.7;
+            padding: 60px;
             text-align: center;
-            max-width: 80%;
-        }
-        
-        .icon {
-            font-size: 5rem;
-            margin-bottom: 20px;
-            color: var(--primary-color); /* Use primary color for the icon */
+            background: linear-gradient(135deg, #a5b4fc, #818cf8);
+            position: relative;
+            overflow: hidden;
+            color: white;
         }
 
-        /* --- RIGHT SIDE (Login Form) --- */
+        .left::before,
+        .left::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.5;
+        }
+
+        .left::before {
+            width: 320px;
+            height: 320px;
+            background: #6366f1;
+            top: -50px;
+            left: -40px;
+        }
+
+        .left::after {
+            width: 380px;
+            height: 380px;
+            background: #4f46e5;
+            bottom: -60px;
+            right: -30px;
+        }
+
+        .left-divider {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .icon {
+            font-size: 5rem;
+            text-shadow: 0px 4px 10px rgba(0, 0, 0, 0.25);
+        }
+
+        .left h1 {
+            font-size: 3.8rem;
+            font-weight: 900;
+            margin-top: 10px;
+            letter-spacing: -1px;
+        }
+
+        .left p {
+            font-size: 1.25rem;
+            max-width: 70%;
+            line-height: 1.6;
+            margin-top: 20px;
+            opacity: 0.95;
+        }
+
+        /* RIGHT SECTION */
         .right {
-            flex: 1;
+            flex: 0.9;
             display: flex;
             justify-content: center;
             align-items: center;
-            /* The right side background is also the main background color */
-            background: var(--background-main);
+            padding: 40px;
         }
 
         .login-card {
-            width: 400px;
-            background: var(--card-background); /* Card remains white for focus */
-            padding: 50px;
-            border-radius: 16px;
-            box-shadow: var(--card-shadow);
-            z-index: 10;
+            width: 420px;
+            padding: 40px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+            animation: fadeIn 0.8s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .login-card h2 {
-            font-size: 2rem;
-            margin-bottom: 30px;
             text-align: center;
-            color: #333;
-            font-weight: 600;
+            font-size: 2.1rem;
+            margin-bottom: 35px;
+            font-weight: 800;
         }
 
         .form-group {
-            margin-bottom: 22px;
+            margin-bottom: 20px;
         }
 
         label {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 600;
-            color: #555;
-            display: block;
-            margin-bottom: 5px;
+            color: #333;
         }
+        
+        /* === ERROR MESSAGE STYLES === */
+        .error-message {
+            color: var(--danger);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 5px;
+            display: block; /* Make it take up its own line */
+        }
+        /* Highlight input with error */
+        .form-group input.is-invalid {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 1px var(--danger);
+        }
+        /* ============================ */
 
         input, select {
             width: 100%;
-            padding: 14px;
+            padding: 14px 16px;
+            margin-top: 8px;
+            border-radius: 12px;
+            border: 1px solid #ccc;
             font-size: 1rem;
-            border-radius: 8px;
-            border: 1px solid #e0e0e0;
-            background: white;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            box-sizing: border-box;
-        }
-        
-        input:focus, select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+            background: #fafafa;
+            transition: 0.2s;
         }
 
+        input:focus, select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.25);
+        }
+
+        /* PASSWORD WRAPPER */
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            opacity: 0.65;
+            width: 22px;
+            height: 22px;
+        }
+
+        .password-toggle:hover {
+            opacity: 1;
+        }
+
+        /* BUTTON */
         .btn {
             width: 100%;
             padding: 14px;
-            margin-top: 20px;
-            border: none;
-            border-radius: 8px;
-            background: var(--primary-color); /* Use blue for the action button */
+            background: var(--primary);
             color: white;
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
             cursor: pointer;
-            transition: background 0.3s ease, transform 0.1s;
+            transition: 0.25s;
         }
 
         .btn:hover {
             background: var(--primary-hover);
-            transform: translateY(-1px);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
+            transform: translateY(-2px);
         }
 
         .bottom-text {
-            margin-top: 25px;
+            margin-top: 20px;
             text-align: center;
-            font-size: 0.9rem;
-            color: #666;
+            font-size: 0.95rem;
+            color: #555;
         }
 
         .bottom-text a {
-            font-weight: 600;
+            color: var(--primary);
+            font-weight: bold;
             text-decoration: none;
-            color: var(--primary-color);
-            transition: color 0.2s;
         }
-        
+
         .bottom-text a:hover {
-            color: var(--primary-hover);
             text-decoration: underline;
         }
-    </style>
 
+    </style>
 </head>
+
 <body>
 
 <div class="container">
 
     <div class="left">
+        <div class="left-divider"></div>
         <div class="icon">🎓</div>
         <h1>EduTrack</h1>
-        <p>Your centralized platform for academic excellence and progress monitoring.</p>
+        <p>A modern platform for students, staff, and administrators to monitor academic progress efficiently.</p>
     </div>
 
     <div class="right">
         <div class="login-card">
-            <h2>Sign In to Your Account</h2>
+
+            <h2>Welcome Back</h2>
 
             <form action="/login" method="POST">
                 @csrf
 
                 <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="e.g., john.doe@school.edu" required>
+                    <label>Email Address</label>
+                    {{-- Check if the email field has an error and add the is-invalid class --}}
+                    <input type="email" name="email" placeholder="e.g., john@school.edu" required class="@error('email') is-invalid @enderror">
+
+                    {{-- DISPLAY LOGIN ERROR MESSAGE HERE --}}
+                    @error('email')
+                        <span class="error-message">
+                            {{ $message }}
+                        </span>
+                    @enderror
                 </div>
 
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your secret password" required>
-                </div>
+                <div class="form-group password-wrapper">
+                    <label>Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+
+                    </div>
 
                 <div class="form-group">
-                    <label for="role">Role</label>
-                    <select id="role" name="role" required>
+                    <label>Role</label>
+                    <select name="role" required>
                         <option value="" disabled selected>Select your role</option>
-                        <option value="admin">Admin</option>
-                        <option value="staff">Staff</option>
-                        <option value="student">Student</option>
+                        <option value="administrator">administrator</option>
+                        <option value="lecturer">lecturer</option>
+                        <option value="student">student</option>
                     </select>
                 </div>
 
-                <button class="btn" type="submit">Sign In</button>
+                <button class="btn">Sign In</button>
 
-                <div class="bottom-text">
-                    Need to create an account? <a href="/register">Sign Up Here</a>
+            <!--    <div class="bottom-text">
+                    Don’t have an account? <a href="/register">Create one</a>
                 </div>
+-->
             </form>
         </div>
     </div>
-
 </div>
+
+<script>
+function togglePassword() {
+    const field = document.getElementById("password");
+    field.type = field.type === "password" ? "text" : "password";
+}
+</script>
 
 </body>
 </html>
