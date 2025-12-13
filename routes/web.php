@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AuthController; // Ensure your AuthController is imported
-
+use App\Http\Controllers\CourseController; // Ensure your CourseController is imported
 /*
 |--------------------------------------------------------------------------
 | Public Routes (Authentication)
@@ -43,6 +43,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/administrator', function () {
         return view('dashboard.administrator');
     })->middleware('role:administrator')->name('dashboard.admin');
+
+    // Administrator - View All Courses
+    Route::get('/administrator/manage-course/view-all', [CourseController::class, 'index'])
+        ->middleware('role:administrator')
+        ->name('admin.viewAllCourse');
+        
+    // Administrator - Add New Course
+    Route::get('/add', [CourseController::class, 'create'])->name('admin.courses.create');
+
+    // Administrator - Store New Course
+    Route::post('/store', [CourseController::class, 'store'])->name('admin.courses.store');
 
     // Lecturer Dashboard
     Route::get('/dashboard/lecturer', function () {
