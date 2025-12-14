@@ -168,45 +168,6 @@
 
     </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        @if (session('success'))
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: "{{ session('success') }}",
-                // Removed: showConfirmButton: false, 
-                // Removed: timer: 3000 (We want the user to click OK)
-                confirmButtonText: 'OK', // Explicitly set the button text
-                confirmButtonColor: '#10B981' // Tailwind Teal-500/600 color
-            });
-        @endif
-
-        @if (session('error'))
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: "{{ session('error') }}",
-                // Removed: showConfirmButton: false,
-                // Removed: timer: 3000
-                confirmButtonText: 'OK', 
-                confirmButtonColor: '#10B981' // Teal color for consistency
-            });
-        @endif
-        
-        // Validation errors already have a button by default (no timer)
-        @if ($errors->any())
-            Swal.fire({
-                icon: 'warning',
-                title: 'Validation Failed!',
-                html: 'There were **{{ $errors->count() }}** errors submitting your form. Please check the highlighted fields.',
-                confirmButtonText: 'Got it',
-                confirmButtonColor: '#10B981' // Teal color
-            });
-        @endif
-    });
-</script>
+@stack('scripts')
 </body>
 </html>

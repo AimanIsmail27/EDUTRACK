@@ -55,6 +55,17 @@ Route::middleware('auth')->group(function () {
     // Administrator - Store New Course
     Route::post('/store', [CourseController::class, 'store'])->name('admin.courses.store');
 
+    Route::get('/edit/{code}', [CourseController::class, 'edit'])->name('admin.courses.edit');
+
+     // 5. Update Course (Update) - Handles the PUT request from the edit form
+    Route::put('/update/{code}', [CourseController::class, 'update'])->name('admin.courses.update');
+
+    // 6. Delete Course (Destroy) - Handles the DELETE request
+    Route::delete('/destroy/{code}', [CourseController::class, 'destroy'])->name('admin.courses.destroy');
+    
+    Route::get('/view/{code}', [CourseController::class, 'show'])
+             ->name('admin.courses.show');
+
     // Lecturer Dashboard
     Route::get('/dashboard/lecturer', function () {
         return view('dashboard.lecturer');

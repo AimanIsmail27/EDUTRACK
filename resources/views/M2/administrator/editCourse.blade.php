@@ -1,13 +1,12 @@
 @extends('layout.administrator')
 
-@section('title', 'Add New Course')
+@section('title', 'Edit Course: ' . $course->C_Code)
 
 @section('content')
 
 {{-- 
-    Centering Container with Top Margin
-    We keep the mt-8 here because, as confirmed, the layout's <main> padding 
-    alone is not reliably creating the vertical gap from the header.
+    Centering Container with Top Margin (Same as Add Page)
+    We keep the mt-8 here for reliable vertical gap from the header.
 --}}
 <div class="max-w-7xl mx-auto mt-8"> 
 
@@ -16,17 +15,16 @@
 
         <div class="flex items-center justify-between mb-6 border-b pb-3 border-gray-100">
             <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">
-                Add New Course
+                Edit Course: {{ $course->C_Code }}
             </h1>
-            {{-- Decorative icon matching the modern theme --}}
             <div class="text-teal-600 text-xl">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
             </div>
         </div>
 
-        {{-- Display Validation Errors --}}
+        {{-- Display Validation Errors (Same as Add Page) --}}
         @if ($errors->any())
             <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mb-5 rounded-xl text-sm" role="alert">
                 <p class="font-bold">Reason for Error:</p>
@@ -38,38 +36,34 @@
             </div>
         @endif
 
-        {{-- FORM START --}}
-        <form action="{{ route('admin.courses.store') }}" method="POST" class="space-y-6">
+        {{-- FORM START: Target the update route --}}
+        <form action="{{ route('admin.courses.update', $course->C_Code) }}" method="POST" class="space-y-6">
             @csrf
+            @method('PUT')
 
             <div class="space-y-4">
                 <h2 class="text-lg font-bold text-gray-800 border-b pb-1 border-gray-100">Course Identification</h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
-                    {{-- Course Code (C_Code) --}}
+                    {{-- Course Code (C_Code) - Display Only, Cannot be changed --}}
                     <div class="relative">
                         <label for="C_Code" class="block text-xs font-semibold uppercase text-gray-600 mb-1">Course Code:</label>
                         <input type="text" 
-                               name="C_Code" 
                                id="C_Code" 
-                               value="{{ old('C_Code') }}"
-                               placeholder="e.g., BCN1010"
-                               required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50/70 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition shadow-inner text-sm @error('C_Code') border-red-500 ring-red-200 @enderror">
-                        {{-- Field-specific error hint --}}
-                        @error('C_Code')
-                            <p class="text-red-500 text-xs mt-1 absolute">Required and must be unique.</p>
-                        @enderror
+                               value="{{ $course->C_Code }}"
+                               readonly
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-200/70 text-gray-700 placeholder-gray-400 shadow-inner text-sm cursor-not-allowed">
+                        <p class="text-xs text-gray-500 mt-1">Course code cannot be edited.</p>
                     </div>
 
-                    {{-- Course Name (C_Name) --}}
+                    {{-- Course Name (C_Name) - Populated with existing data --}}
                     <div class="relative">
                         <label for="C_Name" class="block text-xs font-semibold uppercase text-gray-600 mb-1">Course Name:</label>
                         <input type="text" 
                                name="C_Name" 
                                id="C_Name" 
-                               value="{{ old('C_Name') }}"
+                               value="{{ old('C_Name', $course->C_Name) }}"
                                placeholder="e.g., Data Mining Fundamentals"
                                required
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50/70 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition shadow-inner text-sm @error('C_Name') border-red-500 ring-red-200 @enderror">
@@ -86,13 +80,13 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                    {{-- Credit Hour (C_Hour) --}}
+                    {{-- Credit Hour (C_Hour) - Populated with existing data --}}
                     <div class="relative">
                         <label for="C_Hour" class="block text-xs font-semibold uppercase text-gray-600 mb-1">Credit Hour:</label>
                         <input type="number" 
                                name="C_Hour" 
                                id="C_Hour" 
-                               value="{{ old('C_Hour') }}"
+                               value="{{ old('C_Hour', $course->C_Hour) }}"
                                placeholder="3 or 4"
                                required
                                min="1"
@@ -103,17 +97,15 @@
                         @enderror
                     </div>
 
-                    {{-- Semester Offered (C_SemOffered) - NOW CHECKBOXES --}}
+                    {{-- Semester Offered (C_SemOffered) - Checkboxes populated from CSV string --}}
                     <div class="relative">
                         <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">Semester Offered:</label>
                         
-                        {{-- Checkbox Group Container: Clean, stacked layout --}}
                         <div class="space-y-2 p-3 border border-gray-300 rounded-lg bg-gray-50/70 shadow-inner">
 
                             @php
-                                // Retrieve old values as an array, default to empty array
-                                // This is crucial for handling multiple selected checkboxes
-                                $oldSemesters = old('C_SemOffered', []); 
+                                // Get old values (if validation failed) OR split the stored CSV string
+                                $currentSemesters = old('C_SemOffered', explode(',', $course->C_SemOffered));
                             @endphp
 
                             {{-- Checkbox 1 --}}
@@ -122,7 +114,7 @@
                                        name="C_SemOffered[]" 
                                        id="sem1" 
                                        value="1" 
-                                       {{ in_array('1', $oldSemesters) ? 'checked' : '' }}
+                                       {{ in_array('1', $currentSemesters) ? 'checked' : '' }}
                                        class="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500">
                                 <label for="sem1" class="ml-2 text-sm text-gray-700">Semester 1</label>
                             </div>
@@ -133,7 +125,7 @@
                                        name="C_SemOffered[]" 
                                        id="sem2" 
                                        value="2" 
-                                       {{ in_array('2', $oldSemesters) ? 'checked' : '' }}
+                                       {{ in_array('2', $currentSemesters) ? 'checked' : '' }}
                                        class="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500">
                                 <label for="sem2" class="ml-2 text-sm text-gray-700">Semester 2</label>
                             </div>
@@ -144,14 +136,13 @@
                                        name="C_SemOffered[]" 
                                        id="sem3" 
                                        value="3" 
-                                       {{ in_array('3', $oldSemesters) ? 'checked' : '' }}
+                                       {{ in_array('3', $currentSemesters) ? 'checked' : '' }}
                                        class="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500">
                                 <label for="sem3" class="ml-2 text-sm text-gray-700">Semester 3 (Short/Special)</label>
                             </div>
                             
                         </div>
                         
-                        {{-- Validation Error Display for the Checkbox Group --}}
                         @error('C_SemOffered')
                             <p class="text-red-500 text-xs mt-1">Please select at least one semester.</p>
                         @enderror
@@ -161,24 +152,24 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     
-                    {{-- Prerequisites (C_Prerequisites) --}}
+                    {{-- Prerequisites (C_Prerequisites) - Populated with existing data --}}
                     <div class="relative">
                         <label for="C_Prerequisites" class="block text-xs font-semibold uppercase text-gray-600 mb-1">Prerequisites (Optional):</label>
                         <input type="text" 
                                name="C_Prerequisites" 
                                id="C_Prerequisites" 
-                               value="{{ old('C_Prerequisites') }}"
+                               value="{{ old('C_Prerequisites', $course->C_Prerequisites) }}"
                                placeholder="Comma-separated codes (e.g., BCN1001, BCN1002)"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50/70 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition shadow-inner text-sm @error('C_Prerequisites') border-red-500 ring-red-200 @enderror">
                     </div>
 
-                    {{-- Instructor Name (C_Instructor) --}}
+                    {{-- Instructor Name (C_Instructor) - Populated with existing data --}}
                     <div class="relative">
                         <label for="C_Instructor" class="block text-xs font-semibold uppercase text-gray-600 mb-1">Instructor Name (Optional):</label>
                         <input type="text" 
                                name="C_Instructor" 
                                id="C_Instructor" 
-                               value="{{ old('C_Instructor') }}"
+                               value="{{ old('C_Instructor', $course->C_Instructor) }}"
                                placeholder="Enter lead instructor name"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50/70 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition shadow-inner text-sm @error('C_Instructor') border-red-500 ring-red-200 @enderror">
                     </div>
@@ -195,16 +186,16 @@
                               id="C_Description" 
                               rows="4"
                               placeholder="Provide a detailed summary of the course content, learning objectives, and expected outcomes."
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50/70 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition shadow-inner text-sm @error('C_Description') border-red-500 ring-red-200 @enderror">{{ old('C_Description') }}</textarea>
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50/70 text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition shadow-inner text-sm @error('C_Description') border-red-500 ring-red-200 @enderror">{{ old('C_Description', $course->C_Description) }}</textarea>
                 </div>
             </div>
 
             {{-- Action Buttons --}}
             <div class="pt-4 flex justify-end space-x-4">
                 
-                {{-- Complete Button (Primary Teal) --}}
+                {{-- Update Button (Primary Teal) --}}
                 <button type="submit" class="px-6 py-2.5 bg-teal-600 text-white rounded-lg font-bold hover:bg-teal-700 transition duration-300 shadow-lg shadow-teal-600/40 transform hover:scale-[1.02] text-sm">
-                    COMPLETE & SAVE
+                    UPDATE COURSE
                 </button>
                 
                 {{-- Cancel Button (Secondary Red/Danger) --}}
@@ -225,32 +216,14 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // --- Success Message ---
         @if (session('success'))
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: "{{ session('success') }}",
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#10B981'
-            });
+            Swal.fire({ icon: 'success', title: 'Success!', text: "{{ session('success') }}", confirmButtonText: 'OK', confirmButtonColor: '#10B981' });
         @endif
-
-        // --- Failure/Error Message (for custom errors) ---
         @if (session('error'))
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: "{{ session('error') }}",
-                confirmButtonText: 'OK', 
-                confirmButtonColor: '#10B981'
-            });
+            Swal.fire({ icon: 'error', title: 'Oops...', text: "{{ session('error') }}", confirmButtonText: 'OK', confirmButtonColor: '#10B981' });
         @endif
-        
-        // --- Validation Errors (Flashes when returning to the form) ---
         @if ($errors->any())
             Swal.fire({
                 icon: 'warning',

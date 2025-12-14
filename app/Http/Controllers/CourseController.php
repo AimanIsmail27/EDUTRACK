@@ -25,11 +25,11 @@ class CourseController extends Controller
                 // Use 'like' for partial text matching on Code and Name
                 $query->where($filterBy, 'like', '%' . $criteria . '%');
             } elseif ($filterBy == 'C_SemOffered') {
-                // Use '=' for exact matching on Semester number
-                $query->where($filterBy, $criteria);
+                // *** FIX APPLIED HERE ***
+                // Now uses LIKE to find the criteria within the comma-separated string.
+                // e.g., criteria '3' will match '1,2,3', '3', or '3,1'.
+                $query->where($filterBy, 'like', '%' . $criteria . '%');
             }
-            // Note: Validation is often done here to ensure $filterBy is safe
-            // but for simplicity, we'll assume the select options are controlled.
         }
 
         // Execute the final query and retrieve the courses
@@ -38,6 +38,7 @@ class CourseController extends Controller
         // Pass the filtered (or unfiltered) courses to the view
         return view('M2.administrator.viewAllCourse', compact('courses'));
     }
+    
     /**
      * Show form to create a new course
      */
@@ -51,19 +52,48 @@ class CourseController extends Controller
      */
     public function store(Request $request)
     {
+        // 1. VALIDATION RULES
         $request->validate([
+            // Enforce uniqueness for both Code and Name
             'C_Code' => 'required|string|unique:courses,C_Code',
-            'C_Name' => 'required|string',
+            'C_Name' => 'required|string|unique:courses,C_Name',
             'C_Hour' => 'required|integer',
-            'C_SemOffered' => 'required|integer|in:1,2,3',
+            
+            // C_SemOffered MUST be an array from checkboxes, must have min 1 selection, 
+            // and all items must be valid integers (1, 2, or 3)
+            'C_SemOffered' => 'required|array|min:1', 
+            'C_SemOffered.*' => 'integer|in:1,2,3',
+        ],
+
+        // 2. CUSTOM MESSAGES (For array specific errors)
+        [
+             'C_SemOffered.required' => 'The Semester Offered field requires at least one selection.',
+             'C_SemOffered.min' => 'The Semester Offered field requires at least one selection.',
+             'C_SemOffered.*.in' => 'Selected semester(s) must be 1, 2, or 3.',
+        ], 
+
+        // 3. CUSTOM ATTRIBUTES (Fixes user-friendly names in error messages)
+        [
+            'C_Code' => 'Course Code',
+            'C_Name' => 'Course Name',
+            'C_Hour' => 'Credit Hour',
+            'C_SemOffered' => 'Semester Offered',
+            'C_Prerequisites' => 'Prerequisites',
+            'C_Instructor' => 'Instructor Name',
+            'C_Description' => 'Course Description',
         ]);
+        
+        // CONVERSION STEP: Convert the array of semester IDs into a comma-separated string 
+        // for storage in the VARCHAR column.
+        $semestersString = implode(',', $request->C_SemOffered);
 
         Course::create([
             'C_Code' => $request->C_Code,
             'C_Name' => $request->C_Name,
             'C_Hour' => $request->C_Hour,
-            'C_Prerequisites' => $request->C_Prerequisites ?? [],
-            'C_SemOffered' => $request->C_SemOffered,
+            // Assuming C_Prerequisites and others are nullable if not provided
+            'C_Prerequisites' => $request->C_Prerequisites, 
+            'C_SemOffered' => $semestersString, // Store the CSV string
             'C_Instructor' => $request->C_Instructor,
             'C_Description' => $request->C_Description,
         ]);
@@ -80,8 +110,8 @@ class CourseController extends Controller
     {
         $course = Course::findOrFail($code);
 
-        return view('M2.administrator.viewCourse', compact('course'));
-    }
+return view('M2.administrator.viewSpecificCourse', compact('course'));  
+  }
 
     /**
      * Show form to edit course
@@ -97,28 +127,54 @@ class CourseController extends Controller
      * Update course
      */
     public function update(Request $request, $code)
-    {
-        $course = Course::findOrFail($code);
+{
+    $course = Course::findOrFail($code);
+    
+    // 1. VALIDATION RULES
+    $request->validate([
+        // C_Name must be unique to all OTHER courses (it ignores the current course ID/Code)
+        'C_Name' => 'required|string|unique:courses,C_Name,' . $course->C_Code . ',C_Code',
+        'C_Hour' => 'required|integer',
+        // Update C_SemOffered validation to handle array/checkboxes
+        'C_SemOffered' => 'required|array|min:1', 
+        'C_SemOffered.*' => 'integer|in:1,2,3',
+        // Include optional fields for validation if necessary, but keep as simple 'string' if data exists
+        'C_Prerequisites' => 'nullable|string', 
+        'C_Instructor' => 'nullable|string',
+        'C_Description' => 'nullable|string',
+    ],
+    // 2. CUSTOM MESSAGES (For array specific errors, Array 2)
+    [
+         'C_SemOffered.required' => 'The Semester Offered field requires at least one selection.',
+         'C_SemOffered.min' => 'The Semester Offered field requires at least one selection.',
+         'C_SemOffered.*.in' => 'Selected semester(s) must be 1, 2, or 3.',
+    ], 
+    // 3. CUSTOM ATTRIBUTES (Fixes user-friendly names, Array 3)
+    [
+        'C_Name' => 'Course Name',
+        'C_Hour' => 'Credit Hour',
+        'C_SemOffered' => 'Semester Offered',
+        'C_Prerequisites' => 'Prerequisites',
+        'C_Instructor' => 'Instructor Name',
+        'C_Description' => 'Course Description',
+    ]);
+    
+    // CONVERSION STEP for update
+    $semestersString = implode(',', $request->C_SemOffered);
 
-        $request->validate([
-            'C_Name' => 'required|string',
-            'C_Hour' => 'required|integer',
-            'C_SemOffered' => 'required|integer|in:1,2,3',
-        ]);
+    $course->update([
+        'C_Name' => $request->C_Name,
+        'C_Hour' => $request->C_Hour,
+        'C_Prerequisites' => $request->C_Prerequisites,
+        'C_SemOffered' => $semestersString, // Store the CSV string
+        'C_Instructor' => $request->C_Instructor,
+        'C_Description' => $request->C_Description,
+    ]);
 
-        $course->update([
-            'C_Name' => $request->C_Name,
-            'C_Hour' => $request->C_Hour,
-            'C_Prerequisites' => $request->C_Prerequisites ?? [],
-            'C_SemOffered' => $request->C_SemOffered,
-            'C_Instructor' => $request->C_Instructor,
-            'C_Description' => $request->C_Description,
-        ]);
-
-        return redirect()
-            ->route('admin.courses.index')
-            ->with('success', 'Course updated successfully');
-    }
+    return redirect()
+        ->route('admin.viewAllCourse')
+        ->with('success', 'Course updated successfully');
+}
 
     /**
      * Delete course
@@ -128,7 +184,9 @@ class CourseController extends Controller
         Course::findOrFail($code)->delete();
 
         return redirect()
-            ->route('admin.courses.index')
+            ->route('admin.viewAllCourse') // Changed to viewAllCourse for consistency
             ->with('success', 'Course deleted successfully');
     }
+
+
 }

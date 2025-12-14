@@ -4,12 +4,10 @@
 
 @section('content')
 
-{{-- Main Container: Using a strong gradient blend from a rich indigo/blue to a deep teal. 
-     The central white card will pop with maximum contrast against this dynamic background. --}}
+{{-- Main Container: Using a strong gradient blend... --}}
 <div class="min-h-screen p-12 bg-gradient-to-br from-indigo-200/80 to-teal-200/80">
 
     {{-- Content Card: The entire view is wrapped in a large, elevated card --}}
-    {{-- Main card shadow is softened and elevated to pop against the strong gradient --}}
     <div class="bg-white p-12 rounded-3xl shadow-2xl shadow-gray-700/30 border border-white/80">
 
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-10 border-b pb-8 border-gray-100">
@@ -105,13 +103,26 @@
                             <td class="px-6 py-4 text-gray-700 text-sm">{{ $course->C_SemOffered }}</td>
                             
                             {{-- Action Buttons: Updated color palette --}}
-                            <td class="px-6 py-4 text-center space-x-2">
+                            <td class="px-6 py-4 text-center space-x-2 flex justify-center items-center">
                                 {{-- View (Indigo/Action color) --}}
-                                <a href="#" class="px-3 py-1 text-xs bg-indigo-500 text-white rounded-full font-bold hover:bg-indigo-600 transition shadow-sm">VIEW</a>
+                                <a href="{{ route('admin.courses.show', $course->C_Code) }}" class="px-3 py-1 text-xs bg-indigo-500 text-white rounded-full font-bold hover:bg-indigo-600 transition shadow-sm">VIEW</a>
+                                
                                 {{-- Edit (Subtle Gray/Secondary action) --}}
-                                <a href="#" class="px-3 py-1 text-xs bg-gray-500 text-white rounded-full font-bold hover:bg-gray-600 transition shadow-sm">EDIT</a>
-                                {{-- Delete (Danger Color) --}}
-                                <button type="button" class="px-3 py-1 text-xs bg-red-500 text-white rounded-full font-bold hover:bg-red-600 transition shadow-sm">DELETE</button>
+                                <a href="{{ route('admin.courses.edit', $course->C_Code) }}" class="px-3 py-1 text-xs bg-gray-500 text-white rounded-full font-bold hover:bg-gray-600 transition shadow-sm">EDIT</a>
+                                
+                                {{-- Delete (Danger Color) - WRAPPED IN FORM AND JS CALL --}}
+                                <form id="delete-form-{{ $course->C_Code }}" 
+                                      action="{{ route('admin.courses.destroy', $course->C_Code) }}" 
+                                      method="POST" 
+                                      class="inline">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="button" 
+                                            onclick="confirmDelete('{{ $course->C_Code }}', '{{ $course->C_Name }}')"
+                                            class="px-3 py-1 text-xs bg-red-500 text-white rounded-full font-bold hover:bg-red-600 transition shadow-sm">
+                                        DELETE
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         @endforeach
@@ -142,3 +153,51 @@
 </div>
 
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- Shared SweetAlert Functions for Success/Error ---
+        @if (session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: "{{ session('success') }}",
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#10B981'
+            });
+        @endif
+
+        @if (session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: "{{ session('error') }}",
+                confirmButtonText: 'OK', 
+                confirmButtonColor: '#10B981'
+            });
+        @endif
+    });
+
+    // --- NEW: SweetAlert Confirmation Function for Delete ---
+    function confirmDelete(courseCode, courseName) {
+        Swal.fire({
+            title: 'Are you sure?',
+            html: `You are about to delete the course:<br><strong>${courseCode}: ${courseName}</strong>.<br>This action cannot be undone!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DC2626', // Tailwind Red-600
+            cancelButtonColor: '#4B5563', // Tailwind Gray-600
+            confirmButtonText: 'Yes, Delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // User confirmed, submit the hidden form
+                document.getElementById('delete-form-' + courseCode).submit();
+            }
+        });
+    }
+</script>
+@endpush
