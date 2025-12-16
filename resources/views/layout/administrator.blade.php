@@ -97,8 +97,22 @@
                     </button>
 
                     <div x-show="open" x-collapse.duration.300ms class="pl-4 space-y-1" x-cloak>
-                        <a href="#" class="block p-2 text-sm text-gray-600 hover:bg-teal-100 hover:text-teal-700 rounded-lg">Student</a>
-                        <a href="#" class="block p-2 text-sm text-gray-600 hover:bg-teal-100 hover:text-teal-700 rounded-lg">Lecturer</a>
+                        <a href="{{ route('register.student') }}"
+                            class="block p-2 text-sm rounded-lg transition
+                            {{ request()->routeIs('register.student*') 
+                                    ? 'bg-teal-100 text-teal-700 font-semibold' 
+                                    : 'text-gray-600 hover:bg-teal-100 hover:text-teal-700' }}">
+                                Student
+                            </a>
+
+                            <a href="{{ route('register.lecturer') }}"
+                            class="block p-2 text-sm rounded-lg transition
+                            {{ request()->routeIs('register.lecturer*') 
+                                    ? 'bg-teal-100 text-teal-700 font-semibold' 
+                                    : 'text-gray-600 hover:bg-teal-100 hover:text-teal-700' }}">
+                                Lecturer
+                            </a>
+
                     </div>
                 </div>
 

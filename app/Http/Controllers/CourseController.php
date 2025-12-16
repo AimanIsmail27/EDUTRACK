@@ -188,5 +188,36 @@ return view('M2.administrator.viewSpecificCourse', compact('course'));
             ->with('success', 'Course deleted successfully');
     }
 
+    public function addParticipant(Request $request, $courseCode)
+    {
+        // 1. Validation: Ensure matric_id is present and meets basic criteria
+        $request->validate([
+            'matric_id' => 'required|string|max:15|regex:/^[A-Z0-9]+$/',
+        ], [
+            'matric_id.required' => 'Please select a student using the search field.',
+            'matric_id.regex' => 'The matric ID format is invalid.',
+        ]);
+
+        $matricId = $request->input('matric_id');
+        
+        // --- SIMULATED LOGIC START ---
+        
+        // 2. Security Check / Duplication Check (Simulation)
+        // In a real application, you would check if the student is already in the course.
+        
+        // For demonstration, we'll assume the operation is always successful:
+        
+        Log::info("Admin attempting to add student {$matricId} to course {$courseCode}.");
+        
+        // --- SIMULATED LOGIC END ---
+
+        // 3. Redirect back to the participants tab with a success message
+        return redirect()
+            ->route('admin.courses.show', [
+                'code' => $courseCode, 
+                'tab' => 'participants'
+            ])
+            ->with('success', "Student **{$matricId}** has been successfully added to course **{$courseCode}**.");
+    }
 
 }

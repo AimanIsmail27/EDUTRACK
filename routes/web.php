@@ -4,6 +4,10 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\AuthController; // Ensure your AuthController is imported
 use App\Http\Controllers\CourseController; // Ensure your CourseController is imported
+use App\Http\Controllers\LecturerController;
+use App\Http\Controllers\StudentController;
+
+
 /*
 |--------------------------------------------------------------------------
 | Public Routes (Authentication)
@@ -75,4 +79,76 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/student', function () {
         return view('dashboard.student');
     })->middleware('role:student')->name('dashboard.student');
+
+
+    // ==============================
+    // Administrator - Register Lecturer
+    // ==============================
+
+    // View all lecturers + registration form
+    Route::get('/administrator/register-lecturer', [LecturerController::class, 'index'])
+        ->middleware('role:administrator')
+        ->name('register.lecturer');
+
+    // Store new lecturer
+    Route::post('/administrator/register-lecturer', [LecturerController::class, 'store'])
+        ->middleware('role:administrator')
+        ->name('register.lecturer.store');
+
+    // Show lecturer (optional, used for edit/view)
+    Route::get('/administrator/register-lecturer/{lecturer}', [LecturerController::class, 'show'])
+        ->middleware('role:administrator')
+        ->name('register.lecturer.show');
+
+    // Edit lecturer
+    Route::get('/administrator/register-lecturer/{lecturer}/edit', [LecturerController::class, 'edit'])
+        ->middleware('role:administrator')
+        ->name('register.lecturer.edit');
+
+    // Update lecturer
+    Route::put('/administrator/register-lecturer/{lecturer}', [LecturerController::class, 'update'])
+        ->middleware('role:administrator')
+        ->name('register.lecturer.update');
+
+    // Delete lecturer
+    Route::delete('/administrator/register-lecturer/{lecturer}', [LecturerController::class, 'destroy'])
+        ->middleware('role:administrator')
+        ->name('register.lecturer.destroy');
+
+    // ==============================
+    // Administrator - Register Student
+    // ==============================
+
+    // View all students + registration form
+    Route::get('/administrator/register-student', [StudentController::class, 'index'])
+        ->middleware('role:administrator')
+        ->name('register.student');
+
+    // Store new student
+    Route::post('/administrator/register-student', [StudentController::class, 'store'])
+        ->middleware('role:administrator')
+        ->name('register.student.store');
+
+    // Show student
+    Route::get('/administrator/register-student/{student}', [StudentController::class, 'show'])
+        ->middleware('role:administrator')
+        ->name('register.student.show');
+
+    // Edit student
+    Route::get('/administrator/register-student/{student}/edit', [StudentController::class, 'edit'])
+        ->middleware('role:administrator')
+        ->name('register.student.edit');
+
+    // Update student
+    Route::put('/administrator/register-student/{student}', [StudentController::class, 'update'])
+        ->middleware('role:administrator')
+        ->name('register.student.update');
+
+    // Delete student
+    Route::delete('/administrator/register-student/{student}', [StudentController::class, 'destroy'])
+        ->middleware('role:administrator')
+        ->name('register.student.destroy');
+
+    Route::post('/administrator/course/{courseCode}/add-participant', [CourseController::class, 'addParticipant'])
+        ->name('admin.course.addParticipant');
 });
