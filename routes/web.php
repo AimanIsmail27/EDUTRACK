@@ -151,4 +151,10 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/administrator/course/{courseCode}/add-participant', [CourseController::class, 'addParticipant'])
         ->name('admin.course.addParticipant');
+
+    Route::get('/administrator/search-students', [CourseController::class, 'searchStudents'])
+    ->name('admin.students.search');
+
+    Route::delete('/administrator/course/{code}/participant/{matric}', [CourseController::class, 'removeParticipant'])
+    ->name('admin.course.removeParticipant');
 });
