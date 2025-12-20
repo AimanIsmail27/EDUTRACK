@@ -35,7 +35,6 @@ class UserSeeder extends Seeder
 
         // 3. Handle Lecturers (Double Entry: users AND lecturer tables)
         foreach ($lecturers as $lec) {
-            // Update/Insert into 'users' table for Authentication
             DB::table('users')->updateOrInsert(
                 ['email' => $lec['Email']],
                 [
@@ -48,8 +47,6 @@ class UserSeeder extends Seeder
                 ]
             );
 
-            // Update/Insert into 'lecturer' table for Academic Records
-            // Using StaffID as the unique key to prevent duplicate PK errors
             DB::table('lecturer')->updateOrInsert(
                 ['StaffID' => $lec['StaffID']],
                 [
@@ -59,17 +56,39 @@ class UserSeeder extends Seeder
             );
         }
 
-        // 4. Handle Student (users table only)
-        DB::table('users')->updateOrInsert(
-            ['email' => 'student@gmail.com'],
-            [
-                'name' => 'Ahmad Firdaus',
-                'password' => Hash::make('password123'),
-                'role' => 'student',
-                'email_verified_at' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
+        // 4. Handle ALL Students from the 'student' table
+        // This ensures the user_id column in 'student' table is correctly populated
+        $allStudents = DB::table('student')->get();
+
+        foreach ($allStudents as $std) {
+            // Generate a consistent email based on MatricID (e.g., cb21001@student.com)
+            $email = strtolower($std->MatricID) . '@student.com';
+            
+            // Special Case: If this is Ahmad Firdaus, use the specific email you wanted
+            if ($std->MatricID === 'CB21001') {
+                $email = 'student@gmail.com';
+            }
+
+            // Create/Update the User record
+            DB::table('users')->updateOrInsert(
+                ['email' => $email],
+                [
+                    'name' => $std->Name,
+                    'password' => Hash::make('password123'),
+                    'role' => 'student',
+                    'email_verified_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+
+            // Get the User ID to link back
+            $user = DB::table('users')->where('email', $email)->first();
+
+            // Update the student table with the correct user_id link
+            DB::table('student')
+                ->where('MatricID', $std->MatricID)
+                ->update(['user_id' => $user->id]);
+        }
     }
 }

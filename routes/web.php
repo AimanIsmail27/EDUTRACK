@@ -128,5 +128,10 @@ Route::middleware('auth')->group(function () {
         // View Student Assessments
         Route::get('/student/assessments', [CourseController::class, 'studentAssessments'])
             ->name('student.assessment');
+        
+        Route::get('/student/materials/download/{id}', [MaterialController::class, 'download'])
+            ->name('student.materials.download');
+        
+        Route::get('/student/course/{code}', [CourseController::class, 'studentCourseShow'])->name('student.courses.show');
     });
 });

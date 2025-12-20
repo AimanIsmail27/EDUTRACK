@@ -29,6 +29,10 @@ class Student extends Model
         'Year',
     ];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
     /**
      * Relationship: A student can belong to many courses.
      * This connects to the 'course_student' pivot table.
@@ -44,4 +48,6 @@ class Student extends Model
             'C_Code'            // The local key on the 'courses' table
         )->withPivot('semester', 'year');
     }
+
+    
 }

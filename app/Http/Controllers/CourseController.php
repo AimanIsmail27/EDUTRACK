@@ -283,13 +283,79 @@ class CourseController extends Controller
         return view('M2.lecturer.myCourses', compact('courses'));
     }
 
+    /**
+     * Display courses enrolled by the authenticated student
+     */
     public function studentCourses()
     {
-        return view('M2.student.myCourses');
+        // 1. Get the authenticated user's ID
+        $userId = auth()->id();
+
+        /* * 2. Find the student record associated with this user.
+         * Assuming your User model has a student() relationship and 
+         * the 'student' table has a 'user_id' column.
+         */
+        $student = Student::where('user_id', $userId)->first();
+
+        if (!$student) {
+            return view('M2.student.myCourses', ['courses' => collect()]);
+        }
+
+        // 3. Fetch courses via the pivot table relationship defined in Student Model
+        // We eager load 'coordinator' to show the lecturer's name on the card
+        $courses = $student->courses()
+            ->with('coordinator')
+            ->get();
+
+        return view('M2.student.myCourses', compact('courses'));
     }
+
+    /**
+     * Display specific course details for students
+     */
+    public function studentCourseShow($code)
+{
+    // 1. Fetch course without the 'grade' relationship to avoid errors
+    $course = Course::with(['materials', 'lecturers', 'coordinator', 'participants'])->findOrFail($code);
+
+    // 2. Security Check: Ensure student is actually enrolled
+    $student = Student::where('user_id', auth()->id())->first();
+    if (!$student || !$course->participants->contains($student->MatricID)) {
+        abort(403, 'You are not enrolled in this course.');
+    }
+
+    // 3. Map participants data for the Classmates tab
+    $courseParticipants = $course->participants->map(function($std) {
+        return [
+            'matric_id' => $std->MatricID,
+            'full_name' => $std->Name,
+        ];
+    });
+
+    // 4. Dummy Grade Logic: Providing placeholder values so the view works
+    $studentGrades = $course->participants->map(function($std) {
+        return [
+            'matric_id' => $std->MatricID,
+            'full_name' => $std->Name,
+            'quiz1'     => 0, 
+            'quiz2'     => 0,
+            'ia'        => 0,
+            'gp'        => 0,
+            'total'     => 0,
+        ];
+    });
+
+    // 5. Pass data to the view
+    return view('M2.student.viewSpecificCourse', compact('course', 'courseParticipants', 'studentGrades'));
+}
 
     public function studentAssessments()
     {
-        return view('M2.student.assessments');
+        $student = Student::where('user_id', auth()->id())->first();
+        
+        // Fetch courses with grades for this specific student
+        $courses = $student ? $student->courses()->withPivot('semester', 'year')->get() : collect();
+        
+        return view('M2.student.assessments', compact('courses'));
     }
 }
