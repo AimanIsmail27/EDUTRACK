@@ -25,6 +25,7 @@ class Student extends Model
     protected $fillable = [
         'MatricID',
         'Name',
+        'Email',
         'Course',
         'Year',
     ];

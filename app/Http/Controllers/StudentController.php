@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Student;
+use App\Services\MailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,34 @@ class StudentController extends Controller
      */
     public function index()
     {
+        // Get students from users table and join with student table to ensure correct data
         $students = User::where('role', 'student')
-            ->orderBy('created_at', 'desc')
+            ->leftJoin('student', 'users.matric_id', '=', 'student.MatricID')
+            ->select(
+                'users.id',
+                'users.matric_id',
+                'users.name',
+                'users.email as user_email',
+                'users.course as user_course',
+                'users.year as user_year',
+                'student.Course as student_course',
+                'student.Year as student_year',
+                'student.Email as student_email',
+                'users.created_at',
+                'users.updated_at'
+            )
+            ->orderBy('users.created_at', 'desc')
             ->paginate(10);
+        
+        // Map the data to use student table values if available, otherwise use users table
+        $students->getCollection()->transform(function ($student) {
+            // Use student table data if available, otherwise fall back to users table
+            $student->email = $student->student_email ?? $student->user_email ?? strtolower($student->matric_id) . '@student.edu';
+            $student->course = $student->student_course ?? $student->user_course ?? 'N/A';
+            $student->year = $student->student_year ?? $student->user_year ?? 'N/A';
+            return $student;
+        });
+        
         return view('M1.RegisterStudent', compact('students'));
     }
 
@@ -47,7 +73,7 @@ class StudentController extends Controller
         // Auto-generate default password
         $defaultPassword = 'password123';
 
-        User::create([
+        $user = User::create([
             'matric_id' => $validated['matric_id'],
             'name' => $validated['name'],
             'email' => $email,
@@ -56,6 +82,23 @@ class StudentController extends Controller
             'password' => Hash::make($defaultPassword),
             'role' => 'student',
         ]);
+
+        // Create Student record in student table
+        Student::create([
+            'MatricID' => $validated['matric_id'],
+            'Name' => $validated['name'],
+            'Email' => $email,
+            'Course' => $validated['course'],
+            'Year' => $validated['year'],
+        ]);
+
+        // Send email notification using PHPMailer
+        try {
+            $mailService = new MailService();
+            $mailService->sendAccountEmail($email, $validated['name'], $defaultPassword, 'student', $validated['matric_id'], null, $validated['course'], $validated['year']);
+        } catch (\Exception $mailException) {
+            \Log::error('Failed to send registration email: ' . $mailException->getMessage());
+        }
 
         return redirect()->route('register.student')
             ->with('success', 'Student created successfully.');
@@ -116,6 +159,26 @@ class StudentController extends Controller
         ];
 
         $student->update($updateData);
+
+        // Update or create the student table record
+        $studentRecord = Student::where('MatricID', $validated['matric_id'])->first();
+        if ($studentRecord) {
+            $studentRecord->update([
+                'Name' => $validated['name'],
+                'Email' => $email,
+                'Course' => $validated['course'],
+                'Year' => $validated['year'],
+            ]);
+        } else {
+            // If record doesn't exist in student table, create it
+            Student::create([
+                'MatricID' => $validated['matric_id'],
+                'Name' => $validated['name'],
+                'Email' => $email,
+                'Course' => $validated['course'],
+                'Year' => $validated['year'],
+            ]);
+        }
 
         return redirect()->route('register.student')
             ->with('success', 'Student updated successfully.');
@@ -220,11 +283,22 @@ class StudentController extends Controller
                 Student::create([
                     'MatricID' => $matricId,
                     'Name' => $name,
+                    'Email' => $email,
                     'Course' => $course,
                     'Year' => $year,
                 ]);
 
                 DB::commit();
+                
+                // Send email notification with plain text password using PHPMailer
+                try {
+                    $mailService = new MailService();
+                    $mailService->sendAccountEmail($email, $name, $password, 'student', $matricId, null, $course, $year);
+                } catch (\Exception $mailException) {
+                    // Log email error but don't fail the registration
+                    \Log::error('Failed to send registration email: ' . $mailException->getMessage());
+                }
+                
                 $successCount++;
 
             } catch (\Exception $e) {

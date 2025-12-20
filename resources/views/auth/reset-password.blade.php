@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduTrack - Login</title>
+    <title>EduTrack - Reset Password</title>
 
     <style>
         :root {
@@ -12,7 +12,8 @@
             --primary-hover: #4338ca;
             --text-dark: #222;
             --bg-gray: #f3f4f6;
-            --danger: #e3342f; /* Added danger color for errors */
+            --danger: #e3342f;
+            --success: #10b981;
         }
 
         body {
@@ -108,7 +109,7 @@
             padding: 40px;
         }
 
-        .login-card {
+        .reset-card {
             width: 420px;
             padding: 40px;
             border-radius: 18px;
@@ -123,11 +124,18 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .login-card h2 {
+        .reset-card h2 {
             text-align: center;
             font-size: 2.1rem;
-            margin-bottom: 35px;
+            margin-bottom: 10px;
             font-weight: 800;
+        }
+
+        .reset-card p {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #666;
+            margin-bottom: 35px;
         }
 
         .form-group {
@@ -140,22 +148,28 @@
             color: #333;
         }
         
-        /* === ERROR MESSAGE STYLES === */
         .error-message {
             color: var(--danger);
             font-size: 0.85rem;
             font-weight: 600;
             margin-top: 5px;
-            display: block; /* Make it take up its own line */
+            display: block;
         }
-        /* Highlight input with error */
+
+        .success-message {
+            color: var(--success);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 5px;
+            display: block;
+        }
+
         .form-group input.is-invalid {
             border-color: var(--danger);
             box-shadow: 0 0 0 1px var(--danger);
         }
-        /* ============================ */
 
-        input, select {
+        input {
             width: 100%;
             padding: 14px 16px;
             margin-top: 8px;
@@ -166,12 +180,12 @@
             transition: 0.2s;
         }
 
-        input:focus, select:focus {
+        input:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.25);
+            outline: none;
         }
 
-        /* PASSWORD WRAPPER */
         .password-wrapper {
             position: relative;
         }
@@ -191,7 +205,6 @@
             opacity: 1;
         }
 
-        /* BUTTON */
         .btn {
             width: 100%;
             padding: 14px;
@@ -208,6 +221,12 @@
         .btn:hover {
             background: var(--primary-hover);
             transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .bottom-text {
@@ -236,25 +255,32 @@
 
     <div class="left">
         <div class="left-divider"></div>
-        <div class="icon">🎓</div>
-        <h1>EduTrack</h1>
-        <p>A modern platform for students, staff, and administrators to monitor academic progress efficiently.</p>
+        <div class="icon">🔐</div>
+        <h1>Reset Password</h1>
+        <p>Enter your email and new password to reset your account password.</p>
     </div>
 
     <div class="right">
-        <div class="login-card">
+        <div class="reset-card">
 
-            <h2>Welcome Back</h2>
+            <h2>Reset Your Password</h2>
+            <p>Please enter your email address and new password</p>
 
-            <form action="/login" method="POST">
+            @if(session('success'))
+                <div class="success-message">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            <form action="{{ route('password.reset.submit') }}" method="POST">
                 @csrf
 
                 <div class="form-group">
                     <label>Email Address</label>
-                    {{-- Check if the email field has an error and add the is-invalid class --}}
-                    <input type="email" name="email" placeholder="e.g., john@school.edu" required class="@error('email') is-invalid @enderror">
+                    <input type="email" name="email" placeholder="e.g., john@school.edu" required 
+                           value="{{ old('email') }}" 
+                           class="@error('email') is-invalid @enderror">
 
-                    {{-- DISPLAY LOGIN ERROR MESSAGE HERE --}}
                     @error('email')
                         <span class="error-message">
                             {{ $message }}
@@ -263,25 +289,27 @@
                 </div>
 
                 <div class="form-group password-wrapper">
-                    <label>Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
-
-                    </div>
-
-                <div class="form-group">
-                    <label>Role</label>
-                    <select name="role" required>
-                        <option value="" disabled selected>Select your role</option>
-                        <option value="administrator">administrator</option>
-                        <option value="lecturer">lecturer</option>
-                        <option value="student">student</option>
-                    </select>
+                    <label>New Password</label>
+                    <input type="password" id="password" name="password" 
+                           placeholder="Enter your new password" required>
                 </div>
 
-                <button class="btn">Sign In</button>
+                <div class="form-group password-wrapper">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="password_confirmation" name="password_confirmation" 
+                           placeholder="Confirm your new password" required>
+                </div>
+
+                @error('password')
+                    <span class="error-message">
+                        {{ $message }}
+                    </span>
+                @enderror
+
+                <button type="submit" class="btn">Reset Password</button>
 
                 <div class="bottom-text">
-                    <a href="{{ route('password.reset') }}">Forgot Password?</a>
+                    <a href="{{ route('login') }}">Back to Login</a>
                 </div>
             </form>
         </div>
@@ -297,3 +325,4 @@ function togglePassword() {
 
 </body>
 </html>
+

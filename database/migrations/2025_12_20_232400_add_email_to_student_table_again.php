@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Change Year column from integer to varchar to support "2023-2024" format
         Schema::table('student', function (Blueprint $table) {
-            $table->string('Year', 20)->change();
+            $table->string('Email', 255)->nullable()->after('Name');
         });
     }
 
@@ -22,9 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert back to integer (note: this may cause data loss if values are not numeric)
         Schema::table('student', function (Blueprint $table) {
-            $table->integer('Year')->change();
+            $table->dropColumn('Email');
         });
     }
 };

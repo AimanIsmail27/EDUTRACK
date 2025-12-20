@@ -51,6 +51,7 @@
                     <tr class="bg-gray-100 text-gray-600 text-xs uppercase tracking-widest">
                         <th class="px-6 py-3 text-left font-extrabold">Matric ID</th>
                         <th class="px-6 py-3 text-left font-extrabold">Name</th>
+                        <th class="px-6 py-3 text-left font-extrabold">Email</th>
                         <th class="px-6 py-3 text-left font-extrabold">Course</th>
                         <th class="px-6 py-3 text-left font-extrabold">Year</th>
                         <th class="px-6 py-3 text-center font-extrabold">Action</th>
@@ -62,6 +63,7 @@
                         <tr class="{{ $index % 2 ? 'bg-white' : 'bg-gray-50' }} hover:bg-teal-50 transition duration-150">
                             <td class="px-6 py-4 font-semibold text-gray-900 text-sm">{{ $student->matric_id ?? 'N/A' }}</td>
                             <td class="px-6 py-4 text-gray-700 text-sm">{{ $student->name }}</td>
+                            <td class="px-6 py-4 text-gray-700 text-sm">{{ $student->email ?? 'N/A' }}</td>
                             <td class="px-6 py-4 text-gray-700 text-sm">{{ $student->course ?? 'N/A' }}</td>
                             <td class="px-6 py-4 text-gray-700 text-sm">{{ $student->year ?? 'N/A' }}</td>
                             <td class="px-6 py-4 text-center space-x-2" style="position: relative; z-index: 10;">
@@ -87,7 +89,7 @@
                         @endforeach
                     @else
                         <tr>
-                            <td colspan="5" class="px-6 py-8 text-center text-gray-500 text-sm">
+                            <td colspan="6" class="px-6 py-8 text-center text-gray-500 text-sm">
                                 No students registered yet.
                             </td>
                         </tr>

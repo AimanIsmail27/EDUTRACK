@@ -34,6 +34,10 @@ Route::post('/login', [AuthController::class, 'authenticate']);
 // Logout Route
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Password Reset Routes
+Route::get('/reset-password', [AuthController::class, 'showResetForm'])->name('password.reset');
+Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.reset.submit');
+
 
 /*
 |--------------------------------------------------------------------------

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\Lecturer;
+use App\Services\MailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -43,13 +44,21 @@ class LecturerController extends Controller
         // Auto-generate default password
         $defaultPassword = 'password123';
 
-        User::create([
+        $user = User::create([
             'staff_id' => $validated['staff_id'],
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($defaultPassword),
             'role' => 'lecturer',
         ]);
+
+        // Send email notification using PHPMailer
+        try {
+            $mailService = new MailService();
+            $mailService->sendAccountEmail($validated['email'], $validated['name'], $defaultPassword, 'lecturer', null, $validated['staff_id'], null, null);
+        } catch (\Exception $mailException) {
+            \Log::error('Failed to send registration email: ' . $mailException->getMessage());
+        }
 
         return redirect()->route('register.lecturer')
             ->with('success', 'Lecturer created successfully.');
@@ -205,6 +214,16 @@ class LecturerController extends Controller
                 ]);
 
                 DB::commit();
+                
+                // Send email notification with plain text password using PHPMailer
+                try {
+                    $mailService = new MailService();
+                    $mailService->sendAccountEmail($email, $name, $password, 'lecturer', null, $staffId, null, null);
+                } catch (\Exception $mailException) {
+                    // Log email error but don't fail the registration
+                    \Log::error('Failed to send registration email: ' . $mailException->getMessage());
+                }
+                
                 $successCount++;
 
             } catch (\Exception $e) {

@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\RedirectResponse;
 
 class AuthController extends Controller
@@ -69,5 +70,44 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    /**
+     * Show the password reset form.
+     */
+    public function showResetForm()
+    {
+        return view('auth.reset-password');
+    }
+
+    /**
+     * Handle password reset request.
+     */
+    public function resetPassword(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email', 'exists:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ], [
+            'email.exists' => 'The email address does not exist in our records.',
+            'password.min' => 'The password must be at least 8 characters.',
+            'password.confirmed' => 'The password confirmation does not match.',
+        ]);
+
+        // Find the user by email
+        $user = User::where('email', $validated['email'])->first();
+
+        if (!$user) {
+            return back()->withErrors([
+                'email' => 'The email address does not exist in our records.',
+            ])->onlyInput('email');
+        }
+
+        // Update the password
+        $user->password = Hash::make($validated['password']);
+        $user->save();
+
+        return redirect()->route('password.reset')
+            ->with('success', 'Password has been reset successfully! You can now login with your new password.');
     }
 }
