@@ -47,4 +47,29 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get courses where the user is the Coordinator.
+     * (One-to-Many)
+     */
+    public function coordinatedCourses()
+    {
+        return $this->hasMany(Course::class, 'coordinator_id', 'id');
+    }
+
+    /**
+     * Get courses where the user is part of the Teaching Team (Involved Lecturer).
+     * (Many-to-Many)
+     */
+    public function teachingCourses()
+    {
+        return $this->belongsToMany(
+            Course::class, 
+            'course_lecturer', 
+            'user_id', 
+            'course_code',
+            'id',
+            'C_Code'
+        )->withTimestamps();
+    }
 }

@@ -3,62 +3,74 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Course extends Model
 {
-    /**
-     * Table name
-     */
+    use HasFactory;
+
     protected $table = 'courses';
-
-    /**
-     * Primary key
-     */
     protected $primaryKey = 'C_Code';
-
-    /**
-     * Primary key type
-     */
     protected $keyType = 'string';
-
-    /**
-     * Disable auto-incrementing
-     */
     public $incrementing = false;
 
-    /**
-     * Mass assignable attributes
-     */
     protected $fillable = [
         'C_Code',
         'C_Name',
         'C_Hour',
         'C_Prerequisites',
         'C_SemOffered',
-        'C_Instructor',
+        'coordinator_id', // Replaced C_Instructor with this
         'C_Description',
     ];
 
-    /**
-     * Cast attributes
-     */
     protected $casts = [
         'C_Prerequisites' => 'array',
     ];
 
     /**
-     * Relationship: A course can have many students.
-     * This connects to the 'course_student' pivot table.
+     * Relationship: One Course has one Coordinator (User).
+     */
+    public function coordinator()
+    {
+        return $this->belongsTo(User::class, 'coordinator_id');
+    }
+
+    /**
+     * Relationship: A course can have many involved lecturers.
+     * Connects to 'course_lecturer' pivot table.
+     */
+    public function lecturers()
+    {
+        return $this->belongsToMany(
+            User::class, 
+            'course_lecturer', 
+            'course_code', 
+            'user_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * Relationship: A course can have many students (Participants).
+     * This connects to your 'course_student' pivot table.
      */
     public function participants()
     {
         return $this->belongsToMany(
-            Student::class,      // The Model we are connecting to
-            'course_student',    // The name of the pivot table
-            'course_code',       // The foreign key for THIS model in the pivot table (C_Code)
-            'student_matric',    // The foreign key for the OTHER model in the pivot table (MatricID)
-            'C_Code',            // The local key on the 'courses' table
-            'MatricID'           // The local key on the 'student' table
-        )->withPivot('semester', 'year');
+            Student::class,      
+            'course_student',    
+            'course_code',       
+            'student_matric',    
+            'C_Code',            
+            'MatricID'           
+        )->withPivot('semester', 'year')->withTimestamps();
+    }
+
+    /**
+     * Relationship: A course has many learning materials.
+     */
+    public function materials()
+    {
+        return $this->hasMany(LearningMaterial::class, 'course_code', 'C_Code');
     }
 }
