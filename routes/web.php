@@ -95,6 +95,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:administrator')
         ->name('register.lecturer.store');
 
+    // Upload lecturers from CSV
+    Route::post('/administrator/register-lecturer/upload', [LecturerController::class, 'uploadCsv'])
+        ->middleware('role:administrator')
+        ->name('register.lecturer.upload');
+
     // Show lecturer (optional, used for edit/view)
     Route::get('/administrator/register-lecturer/{lecturer}', [LecturerController::class, 'show'])
         ->middleware('role:administrator')
@@ -128,6 +133,11 @@ Route::middleware('auth')->group(function () {
     Route::post('/administrator/register-student', [StudentController::class, 'store'])
         ->middleware('role:administrator')
         ->name('register.student.store');
+
+    // Upload students from CSV
+    Route::post('/administrator/register-student/upload', [StudentController::class, 'uploadCsv'])
+        ->middleware('role:administrator')
+        ->name('register.student.upload');
 
     // Show student
     Route::get('/administrator/register-student/{student}', [StudentController::class, 'show'])
