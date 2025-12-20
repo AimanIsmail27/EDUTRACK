@@ -102,9 +102,9 @@
                         <p class="text-sm font-medium">Individual Assignment: Database Design</p>
                     </div>
                 </div>
-                <button class="w-full mt-6 py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase hover:bg-emerald-400 transition-colors">
+                <a href="{{ route('student.assignments.index') }}" class="w-full mt-6 inline-flex justify-center py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase hover:bg-emerald-400 transition-colors">
                     View All Assessments
-                </button>
+                </a>
             </div>
         </div>
 
