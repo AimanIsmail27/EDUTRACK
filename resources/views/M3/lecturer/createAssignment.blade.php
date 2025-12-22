@@ -14,7 +14,6 @@
         <form method="POST" action="{{ route('lecturer.assignments.store') }}" enctype="multipart/form-data">
             @include('M3.lecturer.partials.assignment-form', [
                 'submitLabel' => 'Publish Assessment',
-                'statuses' => $statuses,
             ])
         </form>
     </div>

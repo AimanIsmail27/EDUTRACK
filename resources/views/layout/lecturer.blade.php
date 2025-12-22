@@ -9,6 +9,8 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    @stack('styles')
+
     <style>
         [x-cloak] { display:none !important; }
         .sidebar-scroll::-webkit-scrollbar { width: 4px; }
@@ -121,5 +123,62 @@
     </div>
 
 @stack('scripts')
+
+@if (request()->routeIs('lecturer.assignments.*'))
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashSuccess = @json(session('success'));
+            const flashError = @json(session('error'));
+
+            if (typeof Swal !== 'undefined') {
+                if (flashSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: flashSuccess,
+                        confirmButtonColor: '#4f46e5',
+                    });
+                } else if (flashError) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops!',
+                        text: flashError,
+                        confirmButtonColor: '#4f46e5',
+                    });
+                }
+
+                document.querySelectorAll('form[data-swal-confirm]').forEach((form) => {
+                    form.addEventListener('submit', (event) => {
+                        if (form.dataset.swalConfirmed === '1') return;
+
+                        event.preventDefault();
+
+                        const title = form.getAttribute('data-swal-title') || 'Are you sure?';
+                        const text = form.getAttribute('data-swal-text') || '';
+                        const icon = form.getAttribute('data-swal-icon') || 'warning';
+                        const confirmButtonText = form.getAttribute('data-swal-confirm-button') || 'Yes';
+                        const cancelButtonText = form.getAttribute('data-swal-cancel-button') || 'Cancel';
+
+                        Swal.fire({
+                            title,
+                            text,
+                            icon,
+                            showCancelButton: true,
+                            confirmButtonText,
+                            cancelButtonText,
+                            confirmButtonColor: '#4f46e5',
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                form.dataset.swalConfirmed = '1';
+                                form.submit();
+                            }
+                        });
+                    });
+                });
+            }
+        });
+    </script>
+@endif
 </body>
 </html>

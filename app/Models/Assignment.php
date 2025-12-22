@@ -5,16 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-use Illuminate\Support\Carbon;
 
 class Assignment extends Model
 {
     use HasFactory;
-
-    public const STATUS_DRAFT = 'Draft';
-    public const STATUS_SCHEDULED = 'Scheduled';
-    public const STATUS_PUBLISHED = 'Published';
-    public const STATUS_CLOSED = 'Closed';
 
     protected $fillable = [
         'title',
@@ -27,30 +21,15 @@ class Assignment extends Model
         'attachment_path',
     ];
 
+    protected $attributes = [
+        'status' => 'Published',
+    ];
+
     protected $casts = [
         'due_at' => 'datetime',
     ];
 
     protected $appends = ['attachment_url'];
-
-    public static function editableStatuses(): array
-    {
-        return [
-            self::STATUS_DRAFT,
-            self::STATUS_SCHEDULED,
-            self::STATUS_PUBLISHED,
-        ];
-    }
-
-    public static function closeExpired(?int $lecturerId = null): void
-    {
-        static::query()
-            ->when($lecturerId, fn ($query) => $query->where('lecturer_id', $lecturerId))
-            ->whereNotNull('due_at')
-            ->where('due_at', '<', Carbon::now())
-            ->where('status', '!=', self::STATUS_CLOSED)
-            ->update(['status' => self::STATUS_CLOSED]);
-    }
 
     public function course()
     {

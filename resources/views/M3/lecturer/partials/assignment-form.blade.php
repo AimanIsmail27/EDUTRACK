@@ -42,19 +42,6 @@
                 <p class="mt-1 text-sm text-rose-500">{{ $message }}</p>
             @enderror
         </div>
-
-        <div>
-            <label class="block text-sm font-semibold text-indigo-900">Status</label>
-            @php($statusOptions = $statuses ?? \App\Models\Assignment::editableStatuses())
-            <select name="status" class="mt-2 w-full rounded-2xl border border-indigo-100 px-4 py-3 bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
-                @foreach ($statusOptions as $status)
-                    <option value="{{ $status }}" @selected(old('status', $assignment->status ?? 'Draft') === $status)>{{ $status }}</option>
-                @endforeach
-            </select>
-            @error('status')
-                <p class="mt-1 text-sm text-rose-500">{{ $message }}</p>
-            @enderror
-        </div>
     </div>
 
     <div>

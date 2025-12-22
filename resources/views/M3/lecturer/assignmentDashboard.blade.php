@@ -4,12 +4,6 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-8">
-    @if (session('success'))
-        <div class="p-4 text-sm font-semibold text-emerald-800 bg-emerald-100 border border-emerald-200 rounded-2xl">
-            {{ session('success') }}
-        </div>
-    @endif
-
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <p class="text-xs font-semibold tracking-widest text-indigo-500 uppercase">Assessment Module · M3</p>
@@ -17,9 +11,9 @@
             <p class="text-indigo-900/60">Monitor upcoming assessments and publish new ones for your cohort.</p>
         </div>
         <div class="flex items-center gap-3">
-            <button class="px-4 py-2 text-sm font-semibold text-indigo-600 bg-white border border-indigo-100 rounded-2xl shadow-sm hover:shadow transition">
+            <a href="{{ route('lecturer.assignments.calendar') }}" class="px-5 py-3 text-sm font-bold text-indigo-600 bg-white border border-indigo-100 rounded-2xl shadow-sm hover:shadow transition">
                 Assessment Calendar
-            </button>
+            </a>
             <a href="{{ route('lecturer.assignments.create') }}" class="px-5 py-3 text-sm font-bold text-white bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-400/40 hover:bg-indigo-700 transition">
                 Create New Assessment
             </a>
@@ -27,19 +21,14 @@
     </div>
 
     @php
-        $publishedCount = $assignments->where('status', 'Published')->count();
-        $draftCount = $assignments->where('status', 'Draft')->count();
+        $totalCount = $assignments->count();
         $upcomingCount = $assignments->filter(fn($item) => $item->due_at && now()->diffInDays($item->due_at, false) <= 14 && now()->diffInDays($item->due_at, false) >= 0)->count();
     @endphp
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div class="strong-card p-5 rounded-3xl">
-            <p class="text-xs font-semibold tracking-widest text-indigo-400 uppercase">Active</p>
-            <p class="mt-1 text-3xl font-black text-indigo-900">{{ $publishedCount }}</p>
-        </div>
-        <div class="strong-card p-5 rounded-3xl">
-            <p class="text-xs font-semibold tracking-widest text-indigo-400 uppercase">Drafts</p>
-            <p class="mt-1 text-3xl font-black text-indigo-900">{{ $draftCount }}</p>
+            <p class="text-xs font-semibold tracking-widest text-indigo-400 uppercase">Assessments</p>
+            <p class="mt-1 text-3xl font-black text-indigo-900">{{ $totalCount }}</p>
         </div>
         <div class="strong-card p-5 rounded-3xl">
             <p class="text-xs font-semibold tracking-widest text-indigo-400 uppercase">Upcoming Due</p>
@@ -67,7 +56,6 @@
                         <th class="px-6 py-3">Total Marks</th>
                         <th class="px-6 py-3">Submissions</th>
                         <th class="px-6 py-3">Brief</th>
-                        <th class="px-6 py-3">Status</th>
                         <th class="px-6 py-3 text-right">Actions</th>
                     </tr>
                 </thead>
@@ -91,7 +79,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 @if ($assignment->attachment_url)
-                                    <a href="{{ $assignment->attachment_url }}" target="_blank" class="inline-flex items-center px-3 py-1 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-full border border-indigo-100 hover:bg-white">
+                                    <a href="{{ route('lecturer.assignments.brief.download', $assignment) }}" class="inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-sky-700 bg-sky-50 rounded-full border border-sky-100 hover:bg-white whitespace-nowrap">
                                         View PDF
                                     </a>
                                 @else
@@ -99,26 +87,15 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4">
-                                @php
-                                    $statusColor = [
-                                        'Published' => 'bg-emerald-100 text-emerald-700',
-                                        'Draft' => 'bg-amber-100 text-amber-700',
-                                        'Scheduled' => 'bg-indigo-100 text-indigo-700',
-                                        'Closed' => 'bg-slate-200 text-slate-700',
-                                    ][$assignment->status] ?? 'bg-slate-100 text-slate-600';
-                                @endphp
-                                <span class="px-3 py-1 text-xs font-bold rounded-full {{ $statusColor }}">
-                                    {{ $assignment->status }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-right space-x-2">
-                                <a href="{{ route('lecturer.assignments.edit', $assignment) }}" class="px-4 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-2xl border border-indigo-100 hover:bg-white inline-flex">Edit</a>
-                                <a href="{{ route('lecturer.assignments.submissions', $assignment) }}" class="px-4 py-2 text-xs font-bold text-sky-600 bg-sky-50 rounded-2xl border border-sky-100 hover:bg-white inline-flex">Submissions</a>
-                                <form action="{{ route('lecturer.assignments.destroy', $assignment) }}" method="POST" class="inline-flex" onsubmit="return confirm('Delete this assignment?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="px-4 py-2 text-xs font-bold text-rose-600 bg-rose-50 rounded-2xl border border-rose-100 hover:bg-white">Delete</button>
-                                </form>
+                                <div class="flex flex-nowrap items-center justify-end gap-2">
+                                    <a href="{{ route('lecturer.assignments.edit', $assignment) }}" class="inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-violet-600 bg-violet-50 rounded-2xl border border-violet-100 hover:bg-white whitespace-nowrap">Edit</a>
+                                    <a href="{{ route('lecturer.assignments.submissions', $assignment) }}" class="inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-sky-600 bg-sky-50 rounded-2xl border border-sky-100 hover:bg-white whitespace-nowrap">Submissions</a>
+                                    <form action="{{ route('lecturer.assignments.destroy', $assignment) }}" method="POST" class="inline-flex" data-swal-confirm data-swal-title="Delete this assessment?" data-swal-text="This action cannot be undone." data-swal-confirm-button="Delete">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-rose-600 bg-rose-50 rounded-2xl border border-rose-100 hover:bg-white whitespace-nowrap">Delete</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty

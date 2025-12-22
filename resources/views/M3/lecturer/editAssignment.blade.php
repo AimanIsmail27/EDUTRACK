@@ -15,7 +15,6 @@
             @method('PUT')
             @include('M3.lecturer.partials.assignment-form', [
                 'submitLabel' => 'Save Changes',
-                'statuses' => $statuses,
             ])
         </form>
     </div>

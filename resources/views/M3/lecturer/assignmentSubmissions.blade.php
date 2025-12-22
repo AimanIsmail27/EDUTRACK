@@ -13,12 +13,6 @@
         </p>
     </div>
 
-    @if (session('success'))
-        <div class="p-4 text-sm font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200 rounded-2xl">
-            {{ session('success') }}
-        </div>
-    @endif
-
     <div class="strong-card rounded-3xl overflow-hidden">
         <div class="flex items-center justify-between px-6 py-4 border-b border-indigo-50">
             <div>
@@ -63,7 +57,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4">
-                                <a href="{{ $submission->file_url }}" target="_blank" class="inline-flex items-center px-3 py-1 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-full border border-indigo-100 hover:bg-white">Download</a>
+                                <a href="{{ route('lecturer.assignments.submissions.download', [$assignment, $submission]) }}" class="inline-flex items-center px-3 py-1 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-full border border-indigo-100 hover:bg-white">Download</a>
                             </td>
                             <td class="px-6 py-4 text-sm font-semibold text-gray-700">
                                 {{ $submission->score ? $submission->score . ' / ' . $assignment->total_marks : '—' }}
@@ -71,12 +65,23 @@
                             <td class="px-6 py-4 text-sm text-gray-600">
                                 {{ $submission->feedback ?? '—' }}
                             </td>
-                            <td class="px-6 py-4">
-                                <form method="POST" action="{{ route('lecturer.assignments.submissions.grade', [$assignment, $submission]) }}" class="space-y-2">
+                            <td class="px-6 py-4" x-data="{ editing: {{ $submission->score !== null ? 'false' : 'true' }} }">
+                                <div x-show="!editing" x-cloak class="flex flex-col items-end gap-2">
+                                    <button type="button" @click="editing = true" class="inline-flex items-center px-4 py-2 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-2xl border border-indigo-100 hover:bg-white">
+                                        Edit Grade
+                                    </button>
+                                </div>
+
+                                <form x-show="editing" x-cloak method="POST" action="{{ route('lecturer.assignments.submissions.grade', [$assignment, $submission]) }}" class="space-y-2">
                                     @csrf
                                     <input type="number" name="score" min="0" max="{{ $assignment->total_marks }}" value="{{ old('score', $submission->score) }}" class="w-full rounded-2xl border border-indigo-100 px-3 py-2 text-sm" placeholder="Marks" required>
                                     <textarea name="feedback" rows="2" class="w-full rounded-2xl border border-indigo-100 px-3 py-2 text-sm" placeholder="Feedback (optional)">{{ old('feedback', $submission->feedback) }}</textarea>
-                                    <button type="submit" class="w-full px-3 py-2 text-xs font-bold text-white bg-indigo-600 rounded-2xl">Save</button>
+                                    <div class="flex items-center gap-2">
+                                        <button type="submit" class="flex-1 px-3 py-2 text-xs font-bold text-white bg-indigo-600 rounded-2xl">Save</button>
+                                        @if ($submission->score !== null)
+                                            <button type="button" @click="editing = false" class="px-3 py-2 text-xs font-bold text-gray-600 bg-gray-100 rounded-2xl border border-gray-200">Cancel</button>
+                                        @endif
+                                    </div>
                                 </form>
                             </td>
                         </tr>

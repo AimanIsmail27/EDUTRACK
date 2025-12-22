@@ -8,6 +8,7 @@ use App\Http\Controllers\LecturerController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\AssignmentController;
 use App\Http\Controllers\StudentAssignmentController;
+use App\Http\Controllers\StudentCourseController;
 use App\Http\Controllers\LecturerSubmissionController;
 
 
@@ -80,10 +81,18 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware('role:lecturer')->prefix('lecturer')->name('lecturer.')->group(function () {
         Route::resource('assignments', AssignmentController::class)->except(['show']);
+        Route::get('assignments/calendar', [AssignmentController::class, 'calendar'])
+            ->name('assignments.calendar');
+        Route::get('assignments/calendar/events', [AssignmentController::class, 'calendarEvents'])
+            ->name('assignments.calendar.events');
+        Route::get('assignments/{assignment}/brief/download', [AssignmentController::class, 'downloadBrief'])
+            ->name('assignments.brief.download');
         Route::get('assignments/{assignment}/submissions', [LecturerSubmissionController::class, 'index'])
             ->name('assignments.submissions');
         Route::post('assignments/{assignment}/submissions/{submission}/grade', [LecturerSubmissionController::class, 'grade'])
             ->name('assignments.submissions.grade');
+        Route::get('assignments/{assignment}/submissions/{submission}/download', [LecturerSubmissionController::class, 'download'])
+            ->name('assignments.submissions.download');
     });
 
     // Student Dashboard
@@ -92,9 +101,15 @@ Route::middleware('auth')->group(function () {
     })->middleware('role:student')->name('dashboard.student');
 
     Route::middleware('role:student')->prefix('student')->name('student.')->group(function () {
+        Route::get('courses', [StudentCourseController::class, 'index'])->name('courses.index');
         Route::get('assignments', [StudentAssignmentController::class, 'index'])->name('assignments.index');
+        Route::get('assignments/calendar', [StudentAssignmentController::class, 'calendar'])->name('assignments.calendar');
+        Route::get('assignments/calendar/events', [StudentAssignmentController::class, 'calendarEvents'])->name('assignments.calendar.events');
         Route::get('assignments/{assignment}', [StudentAssignmentController::class, 'show'])->name('assignments.show');
+        Route::get('assignments/{assignment}/brief/download', [StudentAssignmentController::class, 'downloadBrief'])->name('assignments.brief.download');
+        Route::get('assignments/{assignment}/submission/download', [StudentAssignmentController::class, 'downloadSubmission'])->name('assignments.submission.download');
         Route::post('assignments/{assignment}/submit', [StudentAssignmentController::class, 'submit'])->name('assignments.submit');
+        Route::delete('assignments/{assignment}/submission', [StudentAssignmentController::class, 'destroySubmission'])->name('assignments.submission.destroy');
     });
 
 

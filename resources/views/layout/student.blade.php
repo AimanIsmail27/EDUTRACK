@@ -9,6 +9,8 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    @stack('styles')
+
     <style>
     [x-cloak] { display:none !important; }
     .sidebar-scroll::-webkit-scrollbar { width: 4px; }
@@ -77,7 +79,7 @@
                 </a>
 
                 {{-- Your Courses --}}
-                <a href="#" class="flex items-center p-3 text-sm rounded-xl transition-all duration-200 {{ $routeIs('student.courses') }}">
+                <a href="{{ route('student.courses.index') }}" class="flex items-center p-3 text-sm rounded-xl transition-all duration-200 {{ $routeIs('student.courses.*') }}">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.247 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                     </svg>
@@ -97,7 +99,7 @@
             <div class="absolute bottom-0 left-0 w-full p-4 bg-emerald-50/50 border-t border-emerald-100">
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="flex items-center justify-center w-full p-3 text-sm font-bold text-white bg-slate-700 rounded-xl hover:bg-slate-800 transition-all shadow-lg group">
+                    <button type="submit" class="flex items-center justify-center w-full p-3 text-sm font-bold text-white bg-rose-500 rounded-xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 group">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h7a1 1 0 011 1v1"/>
                         </svg>
@@ -118,5 +120,62 @@
     </div>
 
 @stack('scripts')
+
+@if (request()->routeIs('student.assignments.*'))
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashSuccess = @json(session('success'));
+            const flashError = @json(session('error'));
+
+            if (typeof Swal !== 'undefined') {
+                if (flashSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: flashSuccess,
+                        confirmButtonColor: '#10b981',
+                    });
+                } else if (flashError) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops!',
+                        text: flashError,
+                        confirmButtonColor: '#10b981',
+                    });
+                }
+
+                document.querySelectorAll('form[data-swal-confirm]').forEach((form) => {
+                    form.addEventListener('submit', (event) => {
+                        if (form.dataset.swalConfirmed === '1') return;
+
+                        event.preventDefault();
+
+                        const title = form.getAttribute('data-swal-title') || 'Are you sure?';
+                        const text = form.getAttribute('data-swal-text') || '';
+                        const icon = form.getAttribute('data-swal-icon') || 'warning';
+                        const confirmButtonText = form.getAttribute('data-swal-confirm-button') || 'Yes';
+                        const cancelButtonText = form.getAttribute('data-swal-cancel-button') || 'Cancel';
+
+                        Swal.fire({
+                            title,
+                            text,
+                            icon,
+                            showCancelButton: true,
+                            confirmButtonText,
+                            cancelButtonText,
+                            confirmButtonColor: '#10b981',
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                form.dataset.swalConfirmed = '1';
+                                form.submit();
+                            }
+                        });
+                    });
+                });
+            }
+        });
+    </script>
+@endif
 </body>
 </html>

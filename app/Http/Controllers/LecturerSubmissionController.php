@@ -6,6 +6,7 @@ use App\Models\Assignment;
 use App\Models\AssignmentSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class LecturerSubmissionController extends Controller
 {
@@ -42,6 +43,25 @@ class LecturerSubmissionController extends Controller
         return redirect()
             ->route('lecturer.assignments.submissions', $assignment)
             ->with('success', 'Grade updated successfully.');
+    }
+
+    public function download(Assignment $assignment, AssignmentSubmission $submission)
+    {
+        $this->authorizeAssignment($assignment);
+        abort_if($submission->assignment_id !== $assignment->id, 404);
+
+        if (!$submission->file_path) {
+            abort(404);
+        }
+
+        $path = $submission->file_path;
+        $disk = Storage::disk('private')->exists($path) ? 'private' : (Storage::disk('public')->exists($path) ? 'public' : null);
+        if (!$disk) {
+            abort(404);
+        }
+
+        $filename = basename($path) ?: 'submission.pdf';
+        return Storage::disk($disk)->download($path, $filename);
     }
 
     protected function authorizeAssignment(Assignment $assignment): void

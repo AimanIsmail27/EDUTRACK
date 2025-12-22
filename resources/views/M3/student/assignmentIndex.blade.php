@@ -4,28 +4,28 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-8">
-    <div class="flex flex-col gap-2">
-        <p class="text-xs font-semibold tracking-widest text-emerald-500 uppercase">Assessment Module · M3</p>
-        <h1 class="text-3xl font-black text-emerald-900">Assignments</h1>
-        <p class="text-emerald-900/70">All published assessments across your courses, with due dates and submission status.</p>
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-2">
+            <p class="text-xs font-semibold tracking-widest text-emerald-500 uppercase">Assessment Module · M3</p>
+            <h1 class="text-3xl font-black text-emerald-900">Assignments</h1>
+            <p class="text-emerald-900/70">All published assessments across your courses, with due dates and submission status.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('student.assignments.calendar') }}" class="px-5 py-3 text-sm font-bold text-emerald-700 bg-white border border-emerald-100 rounded-2xl shadow-sm hover:bg-emerald-600 hover:text-white hover:border-emerald-600 hover:shadow transition">
+                Assignment Calendar
+            </a>
+        </div>
     </div>
 
     <div class="space-y-4">
         @forelse ($assignments as $assignment)
-            @php $submission = $assignment->submissions->first(); @endphp
+            @php
+                $submission = $assignment->submissions->first();
+                $pastDue = $assignment->due_at && now()->greaterThan($assignment->due_at);
+            @endphp
             <div class="bg-white rounded-3xl shadow-lg border border-emerald-50 px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <div class="flex items-center gap-3">
-                        <h2 class="text-xl font-black text-emerald-900">{{ $assignment->title }}</h2>
-                        @php
-                            $statusColor = [
-                                'Published' => 'bg-emerald-100 text-emerald-700',
-                                'Scheduled' => 'bg-blue-100 text-blue-700',
-                                'Closed' => 'bg-slate-200 text-slate-700',
-                            ][$assignment->status] ?? 'bg-slate-100 text-slate-600';
-                        @endphp
-                        <span class="px-3 py-1 text-xs font-bold rounded-full {{ $statusColor }}">{{ $assignment->status }}</span>
-                    </div>
+                    <h2 class="text-xl font-black text-emerald-900">{{ $assignment->title }}</h2>
                     <p class="text-sm text-gray-500 mt-1">
                         {{ optional($assignment->course)->C_Name ? $assignment->course->C_Name . ' • ' . $assignment->course->C_Code : 'Course TBD' }}
                     </p>
@@ -39,10 +39,28 @@
                             Not submitted yet
                         @endif
                     </p>
+                    @if ($pastDue && !$submission)
+                        <p class="text-xs font-semibold text-rose-600 mt-1">Submission closed — past due.</p>
+                    @endif
                 </div>
                 <div class="mt-4 sm:mt-0">
-                    <a href="{{ route('student.assignments.show', $assignment) }}" class="inline-flex items-center px-5 py-3 text-sm font-bold text-white bg-emerald-600 rounded-2xl shadow-lg shadow-emerald-300/60 hover:bg-emerald-700">
-                        View & Submit
+                    @php
+                        $buttonLabel = 'View & Submit';
+                        if ($submission) {
+                            $buttonLabel = $submission->status === 'Graded' ? 'View Marks' : 'View Submission';
+                        } elseif ($pastDue) {
+                            $buttonLabel = 'View Details';
+                        }
+
+                        $buttonClasses = 'inline-flex items-center px-5 py-3 text-sm font-bold text-white rounded-2xl shadow-lg';
+                        if ($submission && $submission->status === 'Graded') {
+                            $buttonClasses .= ' bg-sky-600 shadow-sky-300/60 hover:bg-sky-700';
+                        } else {
+                            $buttonClasses .= ' bg-emerald-600 shadow-emerald-300/60 hover:bg-emerald-700';
+                        }
+                    @endphp
+                    <a href="{{ route('student.assignments.show', $assignment) }}" class="{{ $buttonClasses }}">
+                        {{ $buttonLabel }}
                     </a>
                 </div>
             </div>

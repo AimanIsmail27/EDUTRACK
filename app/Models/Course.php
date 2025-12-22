@@ -61,4 +61,12 @@ class Course extends Model
             'MatricID'           // The local key on the 'student' table
         )->withPivot('semester', 'year');
     }
+
+    /**
+     * Relationship: A course can have many assignments.
+     */
+    public function assignments()
+    {
+        return $this->hasMany(Assignment::class, 'course_code', 'C_Code');
+    }
 }
