@@ -213,7 +213,29 @@ class StudentController extends Controller
         $path = $file->getRealPath();
         
         $data = array_map('str_getcsv', file($path));
-        $header = array_shift($data); // Remove header row
+        $header = array_shift($data); // Get header row
+        
+        // Normalize header: trim and convert to lowercase for matching
+        $header = array_map(function($h) {
+            return strtolower(trim($h));
+        }, $header);
+        
+        // Find column indices by header name (case-insensitive)
+        $matricIdIndex = array_search('matricid', $header);
+        $nameIndex = array_search('name', $header);
+        $courseIndex = array_search('course', $header);
+        $yearIndex = array_search('year', $header);
+        
+        // Validate that all required columns exist
+        if ($matricIdIndex === false || $nameIndex === false || $courseIndex === false || $yearIndex === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV file must contain columns: MatricID, Name, Course, Year',
+                'success_count' => 0,
+                'error_count' => 0,
+                'errors' => ['Missing required columns in CSV header'],
+            ]);
+        }
         
         $successCount = 0;
         $errorCount = 0;
@@ -227,18 +249,18 @@ class StudentController extends Controller
                 }
 
                 // Ensure row has enough columns
-                if (count($row) < 4) {
-                    $errors[] = "Row " . ($index + 2) . ": Insufficient columns (expected 4: MatricID, Name, Course, Year)";
+                $maxIndex = max($matricIdIndex, $nameIndex, $courseIndex, $yearIndex);
+                if (count($row) < $maxIndex + 1) {
+                    $errors[] = "Row " . ($index + 2) . ": Insufficient columns";
                     $errorCount++;
                     continue;
                 }
 
-                // Map CSV columns (adjust based on your CSV format)
-                // Expected format: MatricID, Name, Course, Year
-                $matricId = trim($row[0] ?? '');
-                $name = trim($row[1] ?? '');
-                $course = trim($row[2] ?? '');
-                $year = trim($row[3] ?? '');
+                // Map CSV columns using header indices
+                $matricId = trim($row[$matricIdIndex] ?? '');
+                $name = trim($row[$nameIndex] ?? '');
+                $course = trim($row[$courseIndex] ?? '');
+                $year = trim($row[$yearIndex] ?? '');
                 
                 // Generate email from matric_id (students don't need email input)
                 $email = strtolower($matricId) . '@student.edu';

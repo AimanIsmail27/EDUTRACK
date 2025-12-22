@@ -16,9 +16,28 @@ class LecturerController extends Controller
      */
     public function index()
     {
+        // Get lecturers from users table and join with lecturer table to ensure correct data
         $lecturers = User::where('role', 'lecturer')
-            ->orderBy('created_at', 'desc')
+            ->leftJoin('lecturer', 'users.staff_id', '=', 'lecturer.StaffID')
+            ->select(
+                'users.id',
+                'users.staff_id',
+                'users.name',
+                'users.email as user_email',
+                'lecturer.Email as lecturer_email',
+                'users.created_at',
+                'users.updated_at'
+            )
+            ->orderBy('users.created_at', 'desc')
             ->paginate(10);
+        
+        // Map the data to use lecturer table values if available, otherwise use users table
+        $lecturers->getCollection()->transform(function ($lecturer) {
+            // Use lecturer table data if available, otherwise fall back to users table
+            $lecturer->email = $lecturer->lecturer_email ?? $lecturer->user_email ?? 'N/A';
+            return $lecturer;
+        });
+        
         return view('M1.RegisterLecturer', compact('lecturers'));
     }
 
@@ -50,6 +69,13 @@ class LecturerController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($defaultPassword),
             'role' => 'lecturer',
+        ]);
+
+        // Create Lecturer record in lecturer table
+        Lecturer::create([
+            'StaffID' => $validated['staff_id'],
+            'Name' => $validated['name'],
+            'Email' => $validated['email'],
         ]);
 
         // Send email notification using PHPMailer
@@ -114,6 +140,22 @@ class LecturerController extends Controller
 
         $lecturer->update($updateData);
 
+        // Update or create the lecturer table record
+        $lecturerRecord = Lecturer::where('StaffID', $validated['staff_id'])->first();
+        if ($lecturerRecord) {
+            $lecturerRecord->update([
+                'Name' => $validated['name'],
+                'Email' => $validated['email'],
+            ]);
+        } else {
+            // If record doesn't exist in lecturer table, create it
+            Lecturer::create([
+                'StaffID' => $validated['staff_id'],
+                'Name' => $validated['name'],
+                'Email' => $validated['email'],
+            ]);
+        }
+
         return redirect()->route('register.lecturer')
             ->with('success', 'Lecturer updated successfully.');
     }
@@ -128,6 +170,12 @@ class LecturerController extends Controller
             abort(404);
         }
 
+        // Delete from lecturer table if exists
+        if ($lecturer->staff_id) {
+            Lecturer::where('StaffID', $lecturer->staff_id)->delete();
+        }
+
+        // Delete from users table
         $lecturer->delete();
 
         return redirect()->route('register.lecturer')
@@ -147,7 +195,28 @@ class LecturerController extends Controller
         $path = $file->getRealPath();
         
         $data = array_map('str_getcsv', file($path));
-        $header = array_shift($data); // Remove header row
+        $header = array_shift($data); // Get header row
+        
+        // Normalize header: trim and convert to lowercase for matching
+        $header = array_map(function($h) {
+            return strtolower(trim($h));
+        }, $header);
+        
+        // Find column indices by header name (case-insensitive)
+        $staffIdIndex = array_search('staffid', $header);
+        $nameIndex = array_search('name', $header);
+        $emailIndex = array_search('email', $header);
+        
+        // Validate that all required columns exist
+        if ($staffIdIndex === false || $nameIndex === false || $emailIndex === false) {
+            return response()->json([
+                'success' => false,
+                'message' => 'CSV file must contain columns: StaffID, Name, Email',
+                'success_count' => 0,
+                'error_count' => 0,
+                'errors' => ['Missing required columns in CSV header'],
+            ]);
+        }
         
         $successCount = 0;
         $errorCount = 0;
@@ -161,17 +230,16 @@ class LecturerController extends Controller
                 }
 
                 // Ensure row has enough columns
-                if (count($row) < 3) {
-                    $errors[] = "Row " . ($index + 2) . ": Insufficient columns (expected at least 3: StaffID, Name, Email)";
+                if (count($row) < max($staffIdIndex, $nameIndex, $emailIndex) + 1) {
+                    $errors[] = "Row " . ($index + 2) . ": Insufficient columns";
                     $errorCount++;
                     continue;
                 }
 
-                // Map CSV columns (adjust based on your CSV format)
-                // Expected format: StaffID, Name, Email
-                $staffId = trim($row[0] ?? '');
-                $name = trim($row[1] ?? '');
-                $email = trim($row[2] ?? '');
+                // Map CSV columns using header indices
+                $staffId = trim($row[$staffIdIndex] ?? '');
+                $name = trim($row[$nameIndex] ?? '');
+                $email = trim($row[$emailIndex] ?? '');
                 
                 // Auto-generate default password
                 $password = 'password123';
