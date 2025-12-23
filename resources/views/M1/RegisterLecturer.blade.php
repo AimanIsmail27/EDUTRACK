@@ -16,7 +16,25 @@
                 Lecturer Registration
             </h1>
 
-            <div class="flex items-center gap-3">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                <form method="GET" action="{{ route('register.lecturer') }}" class="flex items-center gap-2">
+                    <input type="text"
+                           name="search"
+                           value="{{ request('search') }}"
+                           placeholder="Search Staff ID"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500 w-48">
+                    @if(request('search'))
+                        <a href="{{ route('register.lecturer') }}"
+                           class="px-3 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition">
+                            Clear
+                        </a>
+                    @endif
+                    <button type="submit"
+                            class="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition shadow-md">
+                        Search
+                    </button>
+                </form>
+
                 {{-- CSV Input/Upload Group --}}
                 <div class="flex items-center space-x-2 p-1.5 bg-gray-50 border border-gray-300 rounded-lg shadow-inner" 
                      style="position: relative;">
@@ -94,7 +112,11 @@
                     @else
                         <tr>
                             <td colspan="4" class="px-6 py-8 text-center text-gray-500 text-sm">
-                                No lecturers registered yet. 
+                                @if(request('search'))
+                                    No lecturers found for "{{ request('search') }}".
+                                @else
+                                    No lecturers registered yet. 
+                                @endif
                             </td>
                         </tr>
                     @endif
@@ -259,6 +281,29 @@
     </div>
 </div>
 
+{{-- Error Upload Modal --}}
+<div id="uploadErrorModal" class="hidden fixed inset-0 bg-black bg-opacity-25 z-[1000] flex items-center justify-center">
+    <div class="bg-white w-[450px] max-w-[90%] rounded-xl shadow-2xl overflow-hidden">
+        <div class="bg-red-50 p-6 border-b border-red-200">
+            <div class="flex items-center justify-center mb-4">
+                <svg class="w-16 h-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h2 class="text-center text-2xl font-bold text-red-800">Upload Failed</h2>
+        </div>
+        <div class="p-6">
+            <p id="uploadErrorMessage" class="text-center text-gray-700 mb-6"></p>
+            <div class="flex justify-center">
+                <button type="button" id="closeErrorModal"
+                        class="px-8 py-2 bg-red-600 text-white rounded-lg font-semibold text-sm hover:bg-red-700 transition shadow-md">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- Delete Lecturer Confirmation Modal Overlay --}}
 <div id="deleteLecturerOverlay"
      class="hidden fixed inset-0 bg-black bg-opacity-25 z-[1000] items-center justify-center">
@@ -340,7 +385,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const file = csvFileInput.files[0];
             if (!file) {
-                alert('Please select a CSV file first.');
+                showError('Please select a CSV file first.');
                 return;
             }
 
@@ -358,46 +403,34 @@ document.addEventListener('DOMContentLoaded', function () {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
 
-                // If backend returns HTML/redirect, this avoids JSON crash
                 const contentType = response.headers.get('content-type') || '';
-                if (!contentType.includes('application/json')) {
-                    // fallback: reload (backend may redirect)
-                    location.reload();
+                const isJson = contentType.includes('application/json');
+                const data = isJson ? await response.json() : {};
+
+                if (!response.ok || data.success === false) {
+                showError((data && data.message) ? data.message : 'Upload failed. Please check the file and try again.');
+                    uploadCsvBtn.disabled = false;
+                    uploadCsvBtn.textContent = 'Upload';
                     return;
                 }
 
-                const data = await response.json();
-
-                // Always show success message
                 const successModal = document.getElementById('uploadSuccessModal');
                 const successMessage = document.getElementById('uploadSuccessMessage');
                 if (successModal && successMessage) {
-                    successMessage.textContent = 'Successfully registered!';
+                    successMessage.textContent = data.message || 'Successfully registered!';
                     successModal.classList.remove('hidden');
                     successModal.classList.add('flex');
                 } else {
-                    alert('Successfully registered!');
+                    alert(data.message || 'Successfully registered!');
                 }
-                // Reload after a short delay to show the success message
                 setTimeout(() => {
                     location.reload();
                 }, 1500);
             } catch (err) {
                 console.error(err);
-                // Always show success message even on error
-                const successModal = document.getElementById('uploadSuccessModal');
-                const successMessage = document.getElementById('uploadSuccessMessage');
-                if (successModal && successMessage) {
-                    successMessage.textContent = 'Successfully registered!';
-                    successModal.classList.remove('hidden');
-                    successModal.classList.add('flex');
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
-                } else {
-                    alert('Successfully registered!');
-                    location.reload();
-                }
+                showError('Upload failed. Please try again.');
+                uploadCsvBtn.disabled = false;
+                uploadCsvBtn.textContent = 'Upload';
             }
         });
     }
@@ -417,6 +450,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 uploadSuccessModal.classList.add('hidden');
                 location.reload();
             }
+        });
+    }
+
+    // Error modal helpers
+    const uploadErrorModal = document.getElementById('uploadErrorModal');
+    const uploadErrorMessage = document.getElementById('uploadErrorMessage');
+    const closeErrorModal = document.getElementById('closeErrorModal');
+    function showError(message) {
+        if (uploadErrorMessage) uploadErrorMessage.textContent = message || 'Upload failed. Please try again.';
+        if (uploadErrorModal) {
+            uploadErrorModal.classList.remove('hidden');
+            uploadErrorModal.classList.add('flex');
+        } else {
+            alert(message);
+        }
+    }
+    if (closeErrorModal && uploadErrorModal) {
+        const hideError = () => {
+            uploadErrorModal.classList.remove('flex');
+            uploadErrorModal.classList.add('hidden');
+        };
+        closeErrorModal.addEventListener('click', hideError);
+        uploadErrorModal.addEventListener('click', function(e) {
+            if (e.target === uploadErrorModal) hideError();
         });
     }
 

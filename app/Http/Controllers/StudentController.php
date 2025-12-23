@@ -8,17 +8,27 @@ use App\Services\MailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class StudentController extends Controller
 {
     /**
      * Display a listing of students.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $search = trim($request->get('search', ''));
+
         // Get students from users table and join with student table to ensure correct data
         $students = User::where('role', 'student')
             ->leftJoin('student', 'users.matric_id', '=', 'student.MatricID')
+            ->when($search, function ($query) use ($search) {
+                $lowerSearch = strtolower($search);
+                $query->where(function ($inner) use ($lowerSearch) {
+                    $inner->whereRaw('LOWER(users.matric_id) LIKE ?', ['%' . $lowerSearch . '%'])
+                          ->orWhereRaw('LOWER(student.MatricID) LIKE ?', ['%' . $lowerSearch . '%']);
+                });
+            })
             ->select(
                 'users.id',
                 'users.matric_id',
@@ -34,6 +44,8 @@ class StudentController extends Controller
             )
             ->orderBy('users.created_at', 'desc')
             ->paginate(10);
+
+        $students->appends($request->only('search'));
         
         // Map the data to use student table values if available, otherwise use users table
         $students->getCollection()->transform(function ($student) {
@@ -44,7 +56,7 @@ class StudentController extends Controller
             return $student;
         });
         
-        return view('M1.RegisterStudent', compact('students'));
+        return view('M1.RegisterStudent', compact('students', 'search'));
     }
 
     /**
@@ -205,9 +217,21 @@ class StudentController extends Controller
      */
     public function uploadCsv(Request $request)
     {
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt|max:2048',
-        ]);
+        $validator = Validator::make(
+            $request->all(),
+            ['csv_file' => 'required|file|mimes:csv,txt|max:2048'],
+            ['csv_file.mimes' => 'Invalid file format. Only CSV files are allowed.']
+        );
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first('csv_file') ?? 'Invalid file format. Only CSV files are allowed.',
+                'success_count' => 0,
+                'error_count' => 0,
+                'errors' => $validator->errors()->all(),
+            ], 422);
+        }
 
         $file = $request->file('csv_file');
         $path = $file->getRealPath();
