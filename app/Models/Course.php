@@ -73,4 +73,12 @@ class Course extends Model
     {
         return $this->hasMany(LearningMaterial::class, 'course_code', 'C_Code');
     }
+
+    /**
+     * Relationship: A course can have many assignments.
+     */
+    public function assignments()
+    {
+        return $this->hasMany(Assignment::class, 'course_code', 'C_Code');
+    }
 }

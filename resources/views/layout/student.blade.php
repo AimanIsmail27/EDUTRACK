@@ -8,6 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    @stack('styles')
+
     <style>
         [x-cloak] { display:none !important; }
         .sidebar-scroll::-webkit-scrollbar { width: 4px; }
@@ -68,6 +70,7 @@
 
                 {{-- Dashboard --}}
                 <a href="{{ route('dashboard.student') }}" class="flex items-center p-3 text-sm rounded-xl transition-all duration-200 {{ $routeIs('dashboard.student') }}">
+                <a href="{{ route('dashboard.student') }}" class="flex items-center p-3 text-sm rounded-xl transition-all duration-200 {{ $routeIs('dashboard.student') }}">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
@@ -82,8 +85,8 @@
                     Your Courses
                 </a>
 
-                {{-- Assessment (UPDATED LINK) --}}
-                <a href="{{ route('student.assessment') }}" class="flex items-center p-3 text-sm rounded-xl transition-all duration-200 {{ $routeIs('student.assessment') }}">
+                {{-- NEW: Assessment --}}
+                <a href="{{ route('student.assignments.index') }}" class="flex items-center p-3 text-sm rounded-xl transition-all duration-200 {{ $routeIs('student.assignments.*') }}">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
@@ -95,7 +98,7 @@
             <div class="absolute bottom-0 left-0 w-full p-4 bg-emerald-50/50 border-t border-emerald-100">
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="flex items-center justify-center w-full p-3 text-sm font-bold text-white bg-slate-700 rounded-xl hover:bg-slate-800 transition-all shadow-lg group">
+                    <button type="submit" class="flex items-center justify-center w-full p-3 text-sm font-bold text-white bg-rose-500 rounded-xl hover:bg-rose-600 transition-all shadow-lg shadow-rose-200 group">
                         <svg class="w-5 h-5 mr-2 text-slate-300 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h7a1 1 0 011 1v1"/>
                         </svg>
@@ -116,5 +119,62 @@
     </div>
 
 @stack('scripts')
+
+@if (request()->routeIs('student.assignments.*'))
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashSuccess = @json(session('success'));
+            const flashError = @json(session('error'));
+
+            if (typeof Swal !== 'undefined') {
+                if (flashSuccess) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: flashSuccess,
+                        confirmButtonColor: '#10b981',
+                    });
+                } else if (flashError) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Oops!',
+                        text: flashError,
+                        confirmButtonColor: '#10b981',
+                    });
+                }
+
+                document.querySelectorAll('form[data-swal-confirm]').forEach((form) => {
+                    form.addEventListener('submit', (event) => {
+                        if (form.dataset.swalConfirmed === '1') return;
+
+                        event.preventDefault();
+
+                        const title = form.getAttribute('data-swal-title') || 'Are you sure?';
+                        const text = form.getAttribute('data-swal-text') || '';
+                        const icon = form.getAttribute('data-swal-icon') || 'warning';
+                        const confirmButtonText = form.getAttribute('data-swal-confirm-button') || 'Yes';
+                        const cancelButtonText = form.getAttribute('data-swal-cancel-button') || 'Cancel';
+
+                        Swal.fire({
+                            title,
+                            text,
+                            icon,
+                            showCancelButton: true,
+                            confirmButtonText,
+                            cancelButtonText,
+                            confirmButtonColor: '#10b981',
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                form.dataset.swalConfirmed = '1';
+                                form.submit();
+                            }
+                        });
+                    });
+                });
+            }
+        });
+    </script>
+@endif
 </body>
 </html>

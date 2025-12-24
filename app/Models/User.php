@@ -23,6 +23,9 @@ class User extends Authenticatable
         'password',
         // ADDED THE 'role' FIELD HERE
         'role',
+        'matric_id',
+        'course',
+        'year',
     ];
 
     /**
