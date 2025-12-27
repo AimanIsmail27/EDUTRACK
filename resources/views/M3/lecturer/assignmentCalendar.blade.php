@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="max-w-6xl mx-auto space-y-8">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-col gap: 4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <p class="text-xs font-semibold tracking-widest text-indigo-500 uppercase">Assessment Module · M3</p>
             <h1 class="text-3xl font-black text-indigo-900">Assessment Calendar</h1>
@@ -86,13 +86,11 @@
             const modalSubmissionsEl = document.getElementById('modal-submissions');
 
             const closeModal = () => {
-                if (!modalEl) return;
-                modalEl.classList.add('hidden');
+                if (modalEl) modalEl.classList.add('hidden');
             };
 
             const openModal = (event) => {
                 if (!modalEl) return;
-
                 const props = event.extendedProps || {};
 
                 if (modalTitleEl) modalTitleEl.textContent = props.assignmentTitle || event.title || 'Assessment';
@@ -100,11 +98,17 @@
                     const courseBits = [props.courseName, props.courseCode].filter(Boolean);
                     modalCourseEl.textContent = courseBits.length ? courseBits.join(' · ') : '';
                 }
+                
                 if (modalDueEl) {
                     modalDueEl.textContent = event.start
-                        ? event.start.toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                        ? event.start.toLocaleString('en-GB', { 
+                            year: 'numeric', month: 'short', day: '2-digit', 
+                            hour: '2-digit', minute: '2-digit', hour12: true,
+                            timeZone: 'UTC' 
+                        })
                         : '—';
                 }
+                
                 if (modalMarksEl) modalMarksEl.textContent = props.totalMarks ? `${props.totalMarks} marks` : '—';
                 if (modalEditEl) modalEditEl.href = props.editUrl || '#';
                 if (modalSubmissionsEl) modalSubmissionsEl.href = props.submissionsUrl || '#';
@@ -120,8 +124,18 @@
 
             const calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
+                timeZone: 'UTC', 
+                nextDayThreshold: '00:00:00', 
                 height: 'auto',
                 dayMaxEventRows: true,
+                
+                // Keep the visual marker for visibility in Week/Day views
+                forceEventDuration: true, 
+                defaultTimedEventDuration: '00:01:00',
+                
+                // FIX: Hide the end time label so it only shows 11:30 PM
+                displayEventEnd: false,
+
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
@@ -129,13 +143,9 @@
                 },
                 events: {
                     url: "{{ route('lecturer.assignments.calendar.events') }}",
-                    method: 'GET',
-                    failure: function () {
-                        calendarEl.innerHTML = '<div class="p-4 text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-100 rounded-2xl">Failed to load calendar events.</div>';
-                    }
+                    method: 'GET'
                 },
                 eventDidMount: function (info) {
-                    // Native hover tooltip for long titles.
                     info.el.title = info.event.title;
                     info.el.style.cursor = 'pointer';
                 },
@@ -146,7 +156,8 @@
                 eventTimeFormat: {
                     hour: '2-digit',
                     minute: '2-digit',
-                    meridiem: true
+                    meridiem: 'short',
+                    timeZone: 'UTC'
                 }
             });
 

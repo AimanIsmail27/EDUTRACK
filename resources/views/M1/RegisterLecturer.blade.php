@@ -1,172 +1,209 @@
-@extends('layout.administrator') {{-- remove if you don't use a layout --}}
+@extends('layout.administrator')
+
+@section('title', 'Register Lecturer')
 
 @section('content')
-<div style="min-height:100vh; background:#d9d9d9; font-family:Arial, sans-serif;">
 
-    {{-- Top bar --}}
-    <div style="background:#f5f5f5; padding:15px 30px; border-bottom:1px solid #ccc;">
-        <span style="font-size:22px; font-weight:bold;">EduTrack</span>
-    </div>
+{{-- Main Container: Using a strong gradient blend... --}}
+<div class="min-h-screen p-12 bg-gradient-to-br from-indigo-200/80 to-teal-200/80">
 
-    <div style="display:flex;">
+    {{-- Main Content Card: Lecturer List and Controls --}}
+    <div class="bg-white p-8 rounded-2xl shadow-xl shadow-gray-400/30 border border-gray-100/80">
+        
+        {{-- Header row: title + controls --}}
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 pb-4 border-b border-gray-200">
+            <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight mb-4 sm:mb-0">
+                Lecturer Registration
+            </h1>
 
-        {{-- Left sidebar (same style as other pages) --}}
-        <div style="width:220px; background:#f5f5f5; border-right:1px solid #ccc; padding:20px 15px;">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                <form method="GET" action="{{ route('register.lecturer') }}" class="flex items-center gap-2">
+                    <input type="text"
+                           name="search"
+                           value="{{ request('search') }}"
+                           placeholder="Search Staff ID"
+                           class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500 w-48">
+                    @if(request('search'))
+                        <a href="{{ route('register.lecturer') }}"
+                           class="px-3 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition">
+                            Clear
+                        </a>
+                    @endif
+                    <button type="submit"
+                            class="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700 transition shadow-md">
+                        Search
+                    </button>
+                </form>
 
-            {{-- Dashboard item --}}
-            <div style="display:flex; align-items:center; margin-bottom:25px; font-size:15px;">
-                <span style="margin-right:8px;">🏠</span>
-                <span>Dashboard</span>
-            </div>
-
-            {{-- Register User dropdown title --}}
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:15px;">
-                <div style="display:flex; align-items:center;">
-                    <span style="margin-right:8px;">👤</span>
-                    <span>Register User</span>
+                {{-- CSV Input/Upload Group --}}
+                <div class="flex items-center space-x-2 p-1.5 bg-gray-50 border border-gray-300 rounded-lg shadow-inner" 
+                     style="position: relative;">
+                    <input type="text"
+                           id="csvFileName"
+                           value="No file chosen"
+                           readonly
+                           class="px-2 py-1 border-none bg-transparent w-32 text-sm text-gray-700 pointer-events-none">
+                    
+                    {{-- Hidden file input --}}
+                    <input type="file" 
+                           id="csvFileInput" 
+                           accept=".csv"
+                           style="display: none;">
+                    
+                    {{-- Icon (upload) button --}}
+                    <button type="button" 
+                            id="csvUploadButton"
+                            class="text-gray-600 hover:text-teal-600 transition p-1 cursor-pointer"
+                            style="pointer-events: auto;">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                    </button>
                 </div>
-                <span>▼</span>
+
+                {{-- Upload button (Only enabled when CSV file is selected) --}}
+                <button type="button" 
+                        id="uploadCsvButton"
+                        disabled
+                        class="px-6 py-2 bg-gray-400 text-white rounded-lg font-bold cursor-not-allowed transition shadow-md text-sm">
+                    Upload
+                </button>
             </div>
-
-            {{-- Student option --}}
-            <a href="{{ route('register.student') ?? '#' }}"
-               style="display:block; background:#ffffff; border:1px solid #c0c0c0; padding:5px 10px; font-size:14px; text-decoration:none; color:#000; margin-bottom:5px;">
-                Student
-            </a>
-
-            {{-- Lecturer option (highlighted) --}}
-            <a href="{{ route('register.lecturer') ?? '#' }}"
-               style="display:block; background:#e0e0e0; border:1px solid #c0c0c0; padding:5px 10px; font-size:14px; text-decoration:none; color:#000;">
-                Lecturer
-            </a>
         </div>
 
-        {{-- Main content --}}
-        <div style="flex:1; padding:40px;">
-
-            {{-- Header area --}}
-            <div style="background:#f5f5f5; padding:25px 30px; border:1px solid #cccccc;">
-
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-                    <div style="font-size:22px; font-weight:bold;">Lecturer</div>
-
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        {{-- Document.csv input --}}
-                        <input type="text"
-                               value="Document.csv"
-                               style="padding:5px 10px; border:1px solid #a0a0a0; width:150px; font-size:13px;">
-
-                        {{-- Icon (upload) --}}
-                        <button style="border:1px solid #a0a0a0; background:#ffffff; padding:5px 10px; cursor:pointer;">
-                            📁
-                        </button>
-
-                        {{-- Add button --}}
-                        <button type="button" class="open-create-lecturer-modal" style="border:none; background:#e0e0e0; padding:6px 25px; font-size:14px; cursor:pointer;">
-                            Add
-                        </button>
-                    </div>
-                </div>
-
-                {{-- Table --}}
-                <table style="width:100%; border-collapse:collapse; font-size:14px; background:#ffffff;">
-                    <thead>
-                        <tr style="background:#e0e0e0;">
-                            <th style="padding:10px; text-align:left; border-bottom:1px solid #c0c0c0;">Staff ID</th>
-                            <th style="padding:10px; text-align:left; border-bottom:1px solid #c0c0c0;">Name</th>
-                            <th style="padding:10px; text-align:left; border-bottom:1px solid #c0c0c0;">Email</th>
-                            <th style="padding:10px; text-align:left; border-bottom:1px solid #c0c0c0;">Action</th>
+        {{-- Lecturer Table --}}
+        <div class="overflow-x-auto shadow-xl rounded-xl border border-gray-200/80">
+            <table class="w-full">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-600 text-xs uppercase tracking-widest">
+                        <th class="px-6 py-3 text-left font-extrabold">Staff ID</th>
+                        <th class="px-6 py-3 text-left font-extrabold">Name</th>
+                        <th class="px-6 py-3 text-left font-extrabold">Email</th>
+                        <th class="px-6 py-3 text-center font-extrabold">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @if(isset($lecturers) && $lecturers->count() > 0)
+                        @foreach($lecturers as $index => $lecturer)
+                        <tr class="{{ $index % 2 ? 'bg-white' : 'bg-gray-50' }} hover:bg-teal-50 transition duration-150">
+                            <td class="px-6 py-4 font-semibold text-gray-900 text-sm">{{ $lecturer->staff_id ?? 'N/A' }}</td>
+                            <td class="px-6 py-4 text-gray-700 text-sm">{{ $lecturer->name }}</td>
+                            <td class="px-6 py-4 text-gray-700 text-sm">{{ $lecturer->email }}</td>
+                            <td class="px-6 py-4 text-center space-x-2" style="position: relative; z-index: 10;">
+                                <button type="button"
+                                        class="open-edit-lecturer-modal px-3 py-1 text-xs bg-indigo-500 text-white rounded-full font-bold hover:bg-indigo-600 transition shadow-sm cursor-pointer"
+                                        data-id="{{ $lecturer->id }}"
+                                        data-staff="{{ $lecturer->staff_id }}" 
+                                        data-name="{{ $lecturer->name }}" 
+                                        data-email="{{ $lecturer->email }}"
+                                        style="position: relative; z-index: 20; pointer-events: auto;">
+                                    Edit
+                                </button>
+                                <button type="button"
+                                        class="open-delete-lecturer-modal px-3 py-1 text-xs bg-red-500 text-white rounded-full font-bold hover:bg-red-600 transition shadow-sm cursor-pointer"
+                                        data-id="{{ $lecturer->id }}"
+                                        data-staff="{{ $lecturer->staff_id }}"
+                                        style="position: relative; z-index: 20; pointer-events: auto;">
+                                    Delete
+                                </button>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                      {{-- data will go here later, e.g.
-                      @foreach ($lecturers as $lecturer)
-                          <tr>
-                              <td>{{ $lecturer->staff_id }}</td>
-                              <td>{{ $lecturer->name }}</td>
-                              <td>{{ $lecturer->email }}</td>
-                              <td>
-                                  <button
-                                      class="open-edit-lecturer-modal"
-                                      data-staff="{{ $lecturer->staff_id }}"
-                                      data-name="{{ $lecturer->name }}"
-                                      data-email="{{ $lecturer->email }}">
-                                      Edit
-                                  </button>
-                                  <button
-                                      class="open-delete-lecturer-modal"
-                                      data-staff="{{ $lecturer->staff_id }}"
-                                      style="background:#dc3545; color:#ffffff; border:none; padding:5px 12px; cursor:pointer;">
-                                      Delete
-                                  </button>
-                              </td>
-                          </tr>
-                      @endforeach
-                      --}}
-                    </tbody>
-                </table>
-
-            </div>
+                        @endforeach
+                    @else
+                        <tr>
+                            <td colspan="4" class="px-6 py-8 text-center text-gray-500 text-sm">
+                                @if(request('search'))
+                                    No lecturers found for "{{ request('search') }}".
+                                @else
+                                    No lecturers registered yet. 
+                                @endif
+                            </td>
+                        </tr>
+                    @endif
+                </tbody>
+            </table>
         </div>
+        
+        {{-- Pagination Buttons --}}
+        @if(isset($lecturers) && $lecturers->hasPages())
+        <div class="flex justify-center gap-4 mt-6">
+            @if($lecturers->onFirstPage())
+                <button type="button" disabled
+                        class="px-6 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-400 font-medium cursor-not-allowed flex items-center gap-2">
+                    <span>←</span>
+                    <span>Previous</span>
+                </button>
+            @else
+                <a href="{{ $lecturers->previousPageUrl() }}" 
+                   class="px-6 py-2 bg-teal-50 border border-teal-500 rounded-lg text-teal-600 font-medium hover:bg-teal-100 transition flex items-center gap-2">
+                    <span>←</span>
+                    <span>Previous</span>
+                </a>
+            @endif
+
+            @if($lecturers->hasMorePages())
+                <a href="{{ $lecturers->nextPageUrl() }}" 
+                   class="px-6 py-2 bg-teal-50 border border-teal-500 rounded-lg text-teal-600 font-medium hover:bg-teal-100 transition flex items-center gap-2">
+                    <span>Next</span>
+                    <span>→</span>
+                </a>
+            @else
+                <button type="button" disabled
+                        class="px-6 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-400 font-medium cursor-not-allowed flex items-center gap-2">
+                    <span>Next</span>
+                    <span>→</span>
+                </button>
+            @endif
+        </div>
+        @endif
+        
     </div>
 </div>
 
+{{-- ------------------------------------------------ --}}
+{{-- MODALS (Hidden by default)                       --}}
+{{-- ------------------------------------------------ --}}
+
 {{-- Create Lecturer Modal Overlay --}}
 <div id="createLecturerOverlay"
-     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.25); z-index:1000; align-items:center; justify-content:center;">
-    <div style="background:#ffffff; width:520px; max-width:90%; border-radius:10px; padding:30px 40px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-        <h2 style="text-align:center; margin-bottom:25px; font-size:22px; font-weight:bold;">
+     class="hidden fixed inset-0 bg-black bg-opacity-25 z-[1000] items-center justify-center">
+    <div class="bg-white w-[520px] max-w-[90%] rounded-xl p-8 shadow-2xl">
+        <h2 class="text-center mb-6 text-2xl font-bold text-gray-800">
             Add New Lecturer
         </h2>
 
-        <form method="POST" action="{{ route('register.lecturer.store') }}">
+        <form method="POST" action="{{ route('register.lecturer.store') ?? '#' }}" class="space-y-4">
             @csrf
 
             {{-- Staff ID --}}
-            <div style="margin-bottom:15px; display:flex; align-items:center;">
-                <label style="width:120px; font-size:13px;">Staff ID</label>
+            <div class="flex items-center">
+                <label class="w-32 text-sm text-gray-600">Staff ID</label>
                 <input type="text" name="staff_id" required
-                       style="flex:1; padding:7px 10px; border:1px solid #c0c0c0; border-radius:3px; font-size:13px;">
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500">
             </div>
 
             {{-- Name --}}
-            <div style="margin-bottom:15px; display:flex; align-items:center;">
-                <label style="width:120px; font-size:13px;">Name</label>
+            <div class="flex items-center">
+                <label class="w-32 text-sm text-gray-600">Name</label>
                 <input type="text" name="name" required
-                       style="flex:1; padding:7px 10px; border:1px solid #c0c0c0; border-radius:3px; font-size:13px;">
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500">
             </div>
 
             {{-- Email --}}
-            <div style="margin-bottom:15px; display:flex; align-items:center;">
-                <label style="width:120px; font-size:13px;">Email</label>
+            <div class="flex items-center">
+                <label class="w-32 text-sm text-gray-600">Email</label>
                 <input type="email" name="email" required
-                       style="flex:1; padding:7px 10px; border:1px solid #c0c0c0; border-radius:3px; font-size:13px;">
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500">
             </div>
 
-            {{-- Password --}}
-            <div style="margin-bottom:15px; display:flex; align-items:center;">
-                <label style="width:120px; font-size:13px;">Password</label>
-                <input type="password" name="password" required
-                       style="flex:1; padding:7px 10px; border:1px solid #c0c0c0; border-radius:3px; font-size:13px;">
-            </div>
-
-            {{-- Password Confirmation --}}
-            <div style="margin-bottom:25px; display:flex; align-items:center;">
-                <label style="width:120px; font-size:13px;">Confirm Password</label>
-                <input type="password" name="password_confirmation" required
-                       style="flex:1; padding:7px 10px; border:1px solid #c0c0c0; border-radius:3px; font-size:13px;">
-            </div>
 
             {{-- Buttons --}}
-            <div style="text-align:center; margin-bottom:10px;">
+            <div class="pt-4 text-center space-y-3">
                 <button type="submit"
-                        style="background:#2878ff; color:#ffffff; border:none; border-radius:20px; padding:8px 40px; font-size:14px; cursor:pointer;">
+                        class="bg-indigo-600 text-white rounded-full px-10 py-2.5 font-semibold text-sm hover:bg-indigo-700 transition shadow-lg">
                     Add Lecturer
                 </button>
-            </div>
-            <div style="text-align:center;">
-                <button type="button" class="close-create-lecturer-modal"
-                        style="background:#e0e0e0; color:#000000; border:none; border-radius:20px; padding:6px 26px; font-size:13px; cursor:pointer;">
+                <button type="button" class="close-create-lecturer-modal bg-gray-200 text-gray-700 rounded-full px-8 py-2 font-medium text-sm hover:bg-gray-300 transition">
                     Cancel
                 </button>
             </div>
@@ -176,47 +213,44 @@
 
 {{-- Edit Lecturer Modal Overlay --}}
 <div id="editLecturerOverlay"
-     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.25); z-index:1000; align-items:center; justify-content:center;">
-    <div style="background:#ffffff; width:520px; max-width:90%; border-radius:10px; padding:30px 40px; box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-        <h2 style="text-align:center; margin-bottom:25px; font-size:22px; font-weight:bold;">
+     class="hidden fixed inset-0 bg-black bg-opacity-25 z-[1000] flex items-center justify-center">
+    <div class="bg-white w-[520px] max-w-[90%] rounded-xl p-8 shadow-2xl">
+        <h2 class="text-center mb-6 text-2xl font-bold text-gray-800">
             Edit Lecturer Information
         </h2>
 
-        <form>
-            {{-- Staff ID --}}
-            <div style="margin-bottom:15px; display:flex; align-items:center;">
-                <label style="width:120px; font-size:13px;">Staff ID</label>
-                <input type="text" name="staff_id" id="editStaffId"
-                       value="2111"
-                       style="flex:1; padding:7px 10px; border:1px solid #c0c0c0; border-radius:3px; font-size:13px;">
+        <form id="editLecturerForm" action="/update-lecturer-placeholder" method="POST" class="space-y-4">
+            @csrf
+            @method('PUT')
+
+            {{-- Staff ID (Readonly) --}}
+            <div class="flex items-center">
+                <label class="w-32 text-sm text-gray-600">Staff ID</label>
+                <input type="text" name="staff_id" id="editStaffId" readonly
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-100 cursor-not-allowed">
             </div>
 
             {{-- Name --}}
-            <div style="margin-bottom:15px; display:flex; align-items:center;">
-                <label style="width:120px; font-size:13px;">Name</label>
-                <input type="text" name="name" id="editLecturerName"
-                       value="TS DR KAMIL"
-                       style="flex:1; padding:7px 10px; border:1px solid #c0c0c0; border-radius:3px; font-size:13px;">
+            <div class="flex items-center">
+                <label class="w-32 text-sm text-gray-600">Name</label>
+                <input type="text" name="name" id="editLecturerName" required
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500">
             </div>
 
             {{-- Email --}}
-            <div style="margin-bottom:25px; display:flex; align-items:center;">
-                <label style="width:120px; font-size:13px;">Email</label>
-                <input type="email" name="email" id="editLecturerEmail"
-                       value="kamil12@gmail.com"
-                       style="flex:1; padding:7px 10px; border:1px solid #c0c0c0; border-radius:3px; font-size:13px;">
+            <div class="flex items-center mb-6">
+                <label class="w-32 text-sm text-gray-600">Email</label>
+                <input type="email" name="email" id="editLecturerEmail" required
+                       class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-teal-500 focus:border-teal-500">
             </div>
 
             {{-- Buttons --}}
-            <div style="text-align:center; margin-bottom:10px;">
-                <button type="button"
-                        style="background:#2878ff; color:#ffffff; border:none; border-radius:20px; padding:8px 40px; font-size:14px; cursor:pointer;">
+            <div class="pt-4 text-center space-y-3">
+                <button type="submit"
+                        class="bg-indigo-600 text-white rounded-full px-10 py-2.5 font-semibold text-sm hover:bg-indigo-700 transition shadow-lg">
                     Update Information
                 </button>
-            </div>
-            <div style="text-align:center;">
-                <button type="button" class="close-edit-lecturer-modal"
-                        style="background:#e0e0e0; color:#000000; border:none; border-radius:20px; padding:6px 26px; font-size:13px; cursor:pointer;">
+                <button type="button" class="close-edit-lecturer-modal bg-gray-200 text-gray-700 rounded-full px-8 py-2 font-medium text-sm hover:bg-gray-300 transition">
                     Cancel
                 </button>
             </div>
@@ -224,192 +258,433 @@
     </div>
 </div>
 
-{{-- Delete Lecturer Confirmation Modal Overlay --}}
-<div id="deleteLecturerOverlay"
-     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.25); z-index:1000; align-items:center; justify-content:center;">
-    <div style="background:#ffffff; width:450px; max-width:90%; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,0.2); overflow:hidden;">
-        {{-- Title Bar --}}
-        <div style="background:#ffffff; padding:15px 20px; border-bottom:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-between;">
-            <h2 id="deleteLecturerTitle" style="margin:0; font-size:18px; font-weight:bold; color:#000;">
-                Delete User (2111)
-            </h2>
-            <button class="close-delete-lecturer-modal"
-                    style="background:none; border:none; font-size:20px; cursor:pointer; color:#666; padding:0; width:24px; height:24px; display:flex; align-items:center; justify-content:center;">
-                ×
-            </button>
+{{-- Success Upload Modal --}}
+<div id="uploadSuccessModal" class="hidden fixed inset-0 bg-black bg-opacity-25 z-[1000] flex items-center justify-center">
+    <div class="bg-white w-[450px] max-w-[90%] rounded-xl shadow-2xl overflow-hidden">
+        <div class="bg-green-50 p-6 border-b border-green-200">
+            <div class="flex items-center justify-center mb-4">
+                <svg class="w-16 h-16 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h2 class="text-center text-2xl font-bold text-green-800">Successfully Registered!</h2>
         </div>
-
-        {{-- Modal Body --}}
-        <div style="padding:30px 20px;">
-            <p style="margin:0 0 30px 0; font-size:14px; color:#333; text-align:center;">
-                This action cannot be undo once confirm. Do you still want to proceed?
-            </p>
-
-            {{-- Buttons --}}
-            <div style="display:flex; justify-content:center; gap:15px;">
-                <button type="button" class="close-delete-lecturer-modal"
-                        style="background:#e0e0e0; color:#000000; border:none; border-radius:4px; padding:8px 30px; font-size:14px; cursor:pointer;">
-                    Cancel
-                </button>
-                <button type="button" id="confirmDeleteLecturer"
-                        style="background:#dc3545; color:#ffffff; border:none; border-radius:4px; padding:8px 30px; font-size:14px; cursor:pointer;">
-                    Delete
+        <div class="p-6">
+            <p id="uploadSuccessMessage" class="text-center text-gray-700 mb-6"></p>
+            <div class="flex justify-center">
+                <button type="button" id="closeSuccessModal"
+                        class="px-8 py-2 bg-green-600 text-white rounded-lg font-semibold text-sm hover:bg-green-700 transition shadow-md">
+                    OK
                 </button>
             </div>
         </div>
     </div>
 </div>
 
+{{-- Error Upload Modal --}}
+<div id="uploadErrorModal" class="hidden fixed inset-0 bg-black bg-opacity-25 z-[1000] flex items-center justify-center">
+    <div class="bg-white w-[450px] max-w-[90%] rounded-xl shadow-2xl overflow-hidden">
+        <div class="bg-red-50 p-6 border-b border-red-200">
+            <div class="flex items-center justify-center mb-4">
+                <svg class="w-16 h-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h2 class="text-center text-2xl font-bold text-red-800">Upload Failed</h2>
+        </div>
+        <div class="p-6">
+            <p id="uploadErrorMessage" class="text-center text-gray-700 mb-6"></p>
+            <div class="flex justify-center">
+                <button type="button" id="closeErrorModal"
+                        class="px-8 py-2 bg-red-600 text-white rounded-lg font-semibold text-sm hover:bg-red-700 transition shadow-md">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Delete Lecturer Confirmation Modal Overlay --}}
+<div id="deleteLecturerOverlay"
+     class="hidden fixed inset-0 bg-black bg-opacity-25 z-[1000] items-center justify-center">
+    <div class="bg-white w-[450px] max-w-[90%] rounded-xl shadow-2xl overflow-hidden">
+        {{-- Title Bar --}}
+        <div class="bg-gray-50/50 p-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 id="deleteLecturerTitle" class="font-bold text-lg text-gray-800">
+                Delete User (2111)
+            </h2>
+            <button class="close-delete-lecturer-modal text-xl text-gray-500 hover:text-gray-700 transition">
+                &times;
+            </button>
+        </div>
+
+        {{-- Modal Body --}}
+        <div class="p-6">
+            <p class="mb-6 text-sm text-gray-700 text-center">
+                This action cannot be undone once confirmed. Do you still want to proceed?
+            </p>
+
+            {{-- Buttons --}}
+            <div class="flex justify-center gap-4">
+                <button type="button" id="confirmDeleteLecturer"
+                        class="bg-red-600 text-white rounded-lg px-8 py-2 font-semibold text-sm hover:bg-red-700 transition shadow-md">
+                    Delete
+                </button>
+                <button type="button" class="close-delete-lecturer-modal bg-gray-200 text-gray-700 rounded-lg px-6 py-2 font-semibold text-sm hover:bg-gray-300 transition">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ------------------------------------------------ --}}
+{{-- JAVASCRIPT FOR MODALS (Adjusted for Tailwind Classes) --}}
+{{-- ------------------------------------------------ --}}
+
+@push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Create Modal Logic
-        const createOverlay = document.getElementById('createLecturerOverlay');
-        const openCreateButtons = document.querySelectorAll('.open-create-lecturer-modal');
-        const closeCreateButtons = document.querySelectorAll('.close-create-lecturer-modal');
+document.addEventListener('DOMContentLoaded', function () {
 
-        function openCreateModal() {
-            if (createOverlay) {
-                createOverlay.style.display = 'flex';
+    // =========================
+    // CSV Upload
+    // =========================
+    const csvFileInput   = document.getElementById('csvFileInput');
+    const csvUploadIcon  = document.getElementById('csvUploadButton');
+    const csvFileName    = document.getElementById('csvFileName');
+    const uploadCsvBtn   = document.getElementById('uploadCsvButton');
+
+    if (csvUploadIcon && csvFileInput) {
+        csvUploadIcon.addEventListener('click', function (e) {
+            e.preventDefault();
+            csvFileInput.click();
+        });
+    }
+
+    if (csvFileInput && csvFileName && uploadCsvBtn) {
+        csvFileInput.addEventListener('change', function () {
+            const file = csvFileInput.files[0];
+
+            if (file) {
+                csvFileName.value = file.name;
+
+                uploadCsvBtn.disabled = false;
+                uploadCsvBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                uploadCsvBtn.classList.add('bg-teal-600', 'hover:bg-teal-700', 'cursor-pointer');
+            } else {
+                csvFileName.value = 'No file chosen';
+
+                uploadCsvBtn.disabled = true;
+                uploadCsvBtn.classList.remove('bg-teal-600', 'hover:bg-teal-700', 'cursor-pointer');
+                uploadCsvBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
             }
-        }
-
-        function closeCreateModal() {
-            if (createOverlay) {
-                createOverlay.style.display = 'none';
-            }
-        }
-
-        openCreateButtons.forEach(function (btn) {
-            btn.addEventListener('click', function (event) {
-                event.preventDefault();
-                openCreateModal();
-            });
         });
 
-        closeCreateButtons.forEach(function (btn) {
-            btn.addEventListener('click', function (event) {
-                event.preventDefault();
-                closeCreateModal();
-            });
-        });
+        uploadCsvBtn.addEventListener('click', async function (e) {
+            e.preventDefault();
 
-        if (createOverlay) {
-            createOverlay.addEventListener('click', function (event) {
-                if (event.target === createOverlay) {
-                    closeCreateModal();
-                }
-            });
-        }
-
-        // Edit modal
-        const overlay = document.getElementById('editLecturerOverlay');
-        const openButtons = document.querySelectorAll('.open-edit-lecturer-modal');
-        const closeButtons = document.querySelectorAll('.close-edit-lecturer-modal');
-        const inputStaff = document.getElementById('editStaffId');
-        const inputName = document.getElementById('editLecturerName');
-        const inputEmail = document.getElementById('editLecturerEmail');
-
-        function openModal() {
-            if (overlay) {
-                overlay.style.display = 'flex';
+            const file = csvFileInput.files[0];
+            if (!file) {
+                showError('Please select a CSV file first.');
+                return;
             }
-        }
 
-        function closeModal() {
-            if (overlay) {
-                overlay.style.display = 'none';
+            const formData = new FormData();
+            formData.append('csv_file', file);
+            formData.append('_token', '{{ csrf_token() }}');
+
+            uploadCsvBtn.disabled = true;
+            uploadCsvBtn.textContent = 'Uploading...';
+
+            try {
+                const response = await fetch('{{ route("register.lecturer.upload") }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                const contentType = response.headers.get('content-type') || '';
+                const isJson = contentType.includes('application/json');
+                const data = isJson ? await response.json() : {};
+
+                if (!response.ok || data.success === false) {
+                showError((data && data.message) ? data.message : 'Upload failed. Please check the file and try again.');
+                    uploadCsvBtn.disabled = false;
+                    uploadCsvBtn.textContent = 'Upload';
+                    return;
+                }
+
+                const successModal = document.getElementById('uploadSuccessModal');
+                const successMessage = document.getElementById('uploadSuccessMessage');
+                if (successModal && successMessage) {
+                    successMessage.textContent = data.message || 'Successfully registered!';
+                    successModal.classList.remove('hidden');
+                    successModal.classList.add('flex');
+                } else {
+                    alert(data.message || 'Successfully registered!');
+                }
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } catch (err) {
+                console.error(err);
+                showError('Upload failed. Please try again.');
+                uploadCsvBtn.disabled = false;
+                uploadCsvBtn.textContent = 'Upload';
             }
-        }
-
-        openButtons.forEach(function (btn) {
-            btn.addEventListener('click', function (event) {
-                event.preventDefault();
-
-                if (inputStaff && this.dataset.staff) {
-                    inputStaff.value = this.dataset.staff;
-                }
-                if (inputName && this.dataset.name) {
-                    inputName.value = this.dataset.name;
-                }
-                if (inputEmail && this.dataset.email) {
-                    inputEmail.value = this.dataset.email;
-                }
-
-                openModal();
-            });
         });
+    }
 
-        closeButtons.forEach(function (btn) {
-            btn.addEventListener('click', function (event) {
-                event.preventDefault();
-                closeModal();
-            });
+    // Close success modal
+    const closeSuccessModal = document.getElementById('closeSuccessModal');
+    const uploadSuccessModal = document.getElementById('uploadSuccessModal');
+    if (closeSuccessModal && uploadSuccessModal) {
+        closeSuccessModal.addEventListener('click', function() {
+            uploadSuccessModal.classList.remove('flex');
+            uploadSuccessModal.classList.add('hidden');
+            location.reload();
         });
-
-        if (overlay) {
-            overlay.addEventListener('click', function (event) {
-                if (event.target === overlay) {
-                    closeModal();
-                }
-            });
-        }
-
-        // Delete modal
-        const deleteOverlay = document.getElementById('deleteLecturerOverlay');
-        const deleteTitle = document.getElementById('deleteLecturerTitle');
-        const openDeleteButtons = document.querySelectorAll('.open-delete-lecturer-modal');
-        const closeDeleteButtons = document.querySelectorAll('.close-delete-lecturer-modal');
-        const confirmDeleteBtn = document.getElementById('confirmDeleteLecturer');
-        let currentStaffId = '';
-
-        function openDeleteModal() {
-            if (deleteOverlay) {
-                deleteOverlay.style.display = 'flex';
+        uploadSuccessModal.addEventListener('click', function(e) {
+            if (e.target === uploadSuccessModal) {
+                uploadSuccessModal.classList.remove('flex');
+                uploadSuccessModal.classList.add('hidden');
+                location.reload();
             }
-        }
-
-        function closeDeleteModal() {
-            if (deleteOverlay) {
-                deleteOverlay.style.display = 'none';
-            }
-        }
-
-        openDeleteButtons.forEach(function (btn) {
-            btn.addEventListener('click', function (event) {
-                event.preventDefault();
-                const staffId = this.dataset.staff || '2111';
-                currentStaffId = staffId;
-                if (deleteTitle) {
-                    deleteTitle.textContent = 'Delete User (' + staffId + ')';
-                }
-                openDeleteModal();
-            });
         });
+    }
 
-        closeDeleteButtons.forEach(function (btn) {
-            btn.addEventListener('click', function (event) {
-                event.preventDefault();
-                closeDeleteModal();
-            });
+    // Error modal helpers
+    const uploadErrorModal = document.getElementById('uploadErrorModal');
+    const uploadErrorMessage = document.getElementById('uploadErrorMessage');
+    const closeErrorModal = document.getElementById('closeErrorModal');
+    function showError(message) {
+        if (uploadErrorMessage) uploadErrorMessage.textContent = message || 'Upload failed. Please try again.';
+        if (uploadErrorModal) {
+            uploadErrorModal.classList.remove('hidden');
+            uploadErrorModal.classList.add('flex');
+        } else {
+            alert(message);
+        }
+    }
+    if (closeErrorModal && uploadErrorModal) {
+        const hideError = () => {
+            uploadErrorModal.classList.remove('flex');
+            uploadErrorModal.classList.add('hidden');
+        };
+        closeErrorModal.addEventListener('click', hideError);
+        uploadErrorModal.addEventListener('click', function(e) {
+            if (e.target === uploadErrorModal) hideError();
         });
+    }
 
-        if (confirmDeleteBtn) {
-            confirmDeleteBtn.addEventListener('click', function (event) {
-                event.preventDefault();
-                // TODO: implement actual delete logic (form submit / AJAX)
-                alert('Delete functionality for ' + currentStaffId + ' - implement your delete logic here');
-                closeDeleteModal();
-            });
-        }
+    // =========================
+    // Modal helpers
+    // =========================
+    function openModal(overlay) {
+        if (!overlay) return;
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+    }
 
-        if (deleteOverlay) {
-            deleteOverlay.addEventListener('click', function (event) {
-                if (event.target === deleteOverlay) {
-                    closeDeleteModal();
-                }
-            });
-        }
+    function closeModal(overlay) {
+        if (!overlay) return;
+        overlay.classList.remove('flex');
+        overlay.classList.add('hidden');
+    }
+
+    // =========================
+    // Create Modal (if you have button)
+    // =========================
+    const createOverlay = document.getElementById('createLecturerOverlay');
+    document.querySelectorAll('.open-create-lecturer-modal').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            openModal(createOverlay);
+        });
     });
+    document.querySelectorAll('.close-create-lecturer-modal').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeModal(createOverlay);
+        });
+    });
+    if (createOverlay) {
+        createOverlay.addEventListener('click', (e) => {
+            if (e.target === createOverlay) closeModal(createOverlay);
+        });
+    }
+
+    // =========================
+    // Edit Modal
+    // =========================
+    const editOverlay = document.getElementById('editLecturerOverlay');
+    const editForm    = document.getElementById('editLecturerForm');
+    const inputStaff  = document.getElementById('editStaffId');
+    const inputName   = document.getElementById('editLecturerName');
+    const inputEmail  = document.getElementById('editLecturerEmail');
+
+    let editLecturerId = '';
+
+    // open edit (delegation)
+    document.body.addEventListener('click', function (e) {
+        const editBtn = e.target.closest('.open-edit-lecturer-modal');
+        if (!editBtn) return;
+
+        e.preventDefault();
+
+        editLecturerId = editBtn.dataset.id || '';
+        if (!editLecturerId) {
+            alert('Error: Lecturer ID not found.');
+            return;
+        }
+
+        if (inputStaff) inputStaff.value = editBtn.dataset.staff || '';
+        if (inputName)  inputName.value  = editBtn.dataset.name  || '';
+        if (inputEmail) inputEmail.value = editBtn.dataset.email || '';
+
+        if (editForm) {
+            // MUST match your route
+            editForm.action = '/administrator/register-lecturer/' + editLecturerId;
+        }
+
+        openModal(editOverlay);
+    });
+
+    // close edit
+    document.querySelectorAll('.close-edit-lecturer-modal').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeModal(editOverlay);
+        });
+    });
+    if (editOverlay) {
+        editOverlay.addEventListener('click', (e) => {
+            if (e.target === editOverlay) closeModal(editOverlay);
+        });
+    }
+
+    // submit edit (AJAX)
+    if (editForm) {
+        editForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            try {
+                const formData = new FormData(editForm);
+
+                const response = await fetch(editForm.action, {
+                    method: 'POST', // Laravel will read _method=PUT from formData
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                // if backend redirects, follow it
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
+                }
+
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    alert(data.message || 'Lecturer updated successfully!');
+                } else {
+                    alert('Lecturer updated successfully!');
+                }
+
+                location.reload();
+            } catch (err) {
+                console.error(err);
+                alert('An error occurred while updating the lecturer.');
+            }
+        });
+    }
+
+    // =========================
+    // Delete Modal
+    // =========================
+    const deleteOverlay   = document.getElementById('deleteLecturerOverlay');
+    const deleteTitle     = document.getElementById('deleteLecturerTitle');
+    const confirmDeleteBtn= document.getElementById('confirmDeleteLecturer');
+
+    let deleteLecturerId = '';
+
+    // open delete (delegation)
+    document.body.addEventListener('click', function (e) {
+        const deleteBtn = e.target.closest('.open-delete-lecturer-modal');
+        if (!deleteBtn) return;
+
+        e.preventDefault();
+
+        deleteLecturerId = deleteBtn.dataset.id || '';
+        const staffId = deleteBtn.dataset.staff || 'N/A';
+
+        if (!deleteLecturerId) {
+            alert('Error: Lecturer ID not found.');
+            return;
+        }
+
+        if (deleteTitle) deleteTitle.textContent = 'Delete Lecturer (' + staffId + ')';
+        openModal(deleteOverlay);
+    });
+
+    // close delete
+    document.querySelectorAll('.close-delete-lecturer-modal').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closeModal(deleteOverlay);
+        });
+    });
+    if (deleteOverlay) {
+        deleteOverlay.addEventListener('click', (e) => {
+            if (e.target === deleteOverlay) closeModal(deleteOverlay);
+        });
+    }
+
+    // confirm delete
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', async function (e) {
+            e.preventDefault();
+
+            if (!deleteLecturerId) {
+                alert('Error: Lecturer ID not found.');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('_token', '{{ csrf_token() }}');
+                formData.append('_method', 'DELETE');
+
+                const response = await fetch('/administrator/register-lecturer/' + deleteLecturerId, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
+                }
+
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    alert(data.message || 'Lecturer deleted successfully!');
+                } else {
+                    alert('Lecturer deleted successfully!');
+                }
+
+                location.reload();
+            } catch (err) {
+                console.error(err);
+                alert('An error occurred while deleting the lecturer.');
+            }
+        });
+    }
+
+});
 </script>
+@endpush
+
 
 @endsection

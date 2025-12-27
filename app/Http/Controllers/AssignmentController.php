@@ -13,18 +13,29 @@ class AssignmentController extends Controller
 {
     public function index()
     {
+        $lecturerId = Auth::id();
+
         $assignments = Assignment::with('course')
             ->withCount('submissions')
-            ->where('lecturer_id', Auth::id())
+            ->whereHas('course', function($query) use ($lecturerId) {
+                $query->where('coordinator_id', $lecturerId)
+                    ->orWhereHas('lecturers', fn($q) => $q->where('user_id', $lecturerId));
+            })
             ->orderBy('due_at')
             ->get();
+
 
         return view('M3.lecturer.assignmentDashboard', compact('assignments'));
     }
 
     public function create()
     {
-        $courses = Course::orderBy('C_Name')->get(['C_Code', 'C_Name']);
+        $lecturerId = Auth::id();
+        $courses = Course::where('coordinator_id', $lecturerId)
+            ->orWhereHas('lecturers', fn($q) => $q->where('user_id', $lecturerId))
+            ->orderBy('C_Name')
+            ->get(['C_Code', 'C_Name']);
+
         $assignment = new Assignment([
             'total_marks' => 100,
         ]);
@@ -48,7 +59,12 @@ class AssignmentController extends Controller
     public function edit(Assignment $assignment)
     {
         $this->authorizeAssignment($assignment);
-        $courses = Course::orderBy('C_Name')->get(['C_Code', 'C_Name']);
+        $lecturerId = Auth::id();
+        $courses = Course::where('coordinator_id', $lecturerId)
+            ->orWhereHas('lecturers', fn($q) => $q->where('user_id', $lecturerId))
+            ->orderBy('C_Name')
+            ->get(['C_Code', 'C_Name']);
+
 
         return view('M3.lecturer.editAssignment', compact('assignment', 'courses'));
     }
@@ -82,35 +98,41 @@ class AssignmentController extends Controller
     }
 
     public function calendarEvents()
-    {
-        $assignments = Assignment::with('course')
-            ->where('lecturer_id', Auth::id())
-            ->whereNotNull('due_at')
-            ->orderBy('due_at')
-            ->get(['id', 'title', 'course_code', 'due_at', 'total_marks']);
+{
+    $lecturerId = Auth::id();
+    $assignments = Assignment::with('course')
+        ->whereHas('course', fn($q) => $q->where('coordinator_id', $lecturerId)
+            ->orWhereHas('lecturers', fn($q2) => $q2->where('user_id', $lecturerId)))
+        ->whereNotNull('due_at')
+        ->get(['id', 'title', 'course_code', 'due_at', 'total_marks']);
 
-        $events = $assignments->map(function (Assignment $assignment) {
-            $courseCode = $assignment->course_code;
-            $title = $courseCode ? $assignment->title . ' · ' . $courseCode : $assignment->title;
+    $events = $assignments->map(function (Assignment $assignment) {
+        $courseCode = $assignment->course_code;
+        $title = $courseCode ? $assignment->title . ' · ' . $courseCode : $assignment->title;
+        $start = $assignment->due_at ? $assignment->due_at->format('Y-m-d\TH:i:s') : null;
 
-            return [
-                'id' => (string) $assignment->id,
-                'title' => $title,
-                'start' => $assignment->due_at?->toIso8601String(),
-                'allDay' => false,
-                'extendedProps' => [
-                    'assignmentTitle' => $assignment->title,
-                    'courseCode' => $courseCode,
-                    'courseName' => optional($assignment->course)->C_Name,
-                    'totalMarks' => $assignment->total_marks,
-                    'editUrl' => route('lecturer.assignments.edit', $assignment),
-                    'submissionsUrl' => route('lecturer.assignments.submissions', $assignment),
-                ],
-            ];
-        })->values();
+        return [
+            'id' => (string) $assignment->id,
+            'title' => $title,
+            'start' => $start,
+            'end' => $start, // Back to zero duration to avoid confusion
+            'allDay' => false,
+            // 'list-item' helps it show up in time-grids as a dot + text 
+            // instead of a stretching block
+            'display' => 'list-item', 
+            'extendedProps' => [
+                'assignmentTitle' => $assignment->title,
+                'courseCode' => $courseCode,
+                'courseName' => optional($assignment->course)->C_Name,
+                'totalMarks' => $assignment->total_marks,
+                'editUrl' => route('lecturer.assignments.edit', $assignment),
+                'submissionsUrl' => route('lecturer.assignments.submissions', $assignment),
+            ],
+        ];
+    })->values();
 
-        return response()->json($events);
-    }
+    return response()->json($events);
+}
 
     public function downloadBrief(Assignment $assignment)
     {

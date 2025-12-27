@@ -81,8 +81,7 @@
             const modalViewEl = document.getElementById('student-modal-view');
 
             const closeModal = () => {
-                if (!modalEl) return;
-                modalEl.classList.add('hidden');
+                if (modalEl) modalEl.classList.add('hidden');
             };
 
             const openModal = (event) => {
@@ -95,11 +94,18 @@
                     const courseBits = [props.courseName, props.courseCode].filter(Boolean);
                     modalCourseEl.textContent = courseBits.length ? courseBits.join(' • ') : '';
                 }
+                
                 if (modalDueEl) {
+                    // Match the UTC string from the controller exactly
                     modalDueEl.textContent = event.start
-                        ? event.start.toLocaleString(undefined, { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                        ? event.start.toLocaleString('en-GB', { 
+                            year: 'numeric', month: 'short', day: '2-digit', 
+                            hour: '2-digit', minute: '2-digit', hour12: true,
+                            timeZone: 'UTC' 
+                        })
                         : '—';
                 }
+                
                 if (modalMarksEl) modalMarksEl.textContent = props.totalMarks ? `${props.totalMarks} marks` : '—';
                 if (modalViewEl) modalViewEl.href = props.viewUrl || '#';
 
@@ -114,8 +120,16 @@
 
             const calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
+                timeZone: 'UTC', // Treat all strings as wall-clock time
+                nextDayThreshold: '00:00:00', // Prevents 11:30 PM from showing on the next day
                 height: 'auto',
                 dayMaxEventRows: true,
+                
+                // Allow zero-duration deadlines to show as a marker in Week/Day views
+                forceEventDuration: true, 
+                defaultTimedEventDuration: '00:01:00',
+                displayEventEnd: false, // Only show "11:30 PM", not "11:30-11:31"
+
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
@@ -139,7 +153,8 @@
                 eventTimeFormat: {
                     hour: '2-digit',
                     minute: '2-digit',
-                    meridiem: true
+                    meridiem: 'short',
+                    timeZone: 'UTC'
                 }
             });
 

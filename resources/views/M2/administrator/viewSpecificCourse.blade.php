@@ -255,6 +255,17 @@
                             @endforelse
                         </tbody>
                     </table>
+                        @if($totalPages > 1)
+                        <div class="flex justify-center mt-6 space-x-2">
+                            @for($page = 1; $page <= $totalPages; $page++)
+                                <a href="?tab=participants&view_semester={{ $filterSemester }}&page={{ $page }}"
+                                class="px-3 py-1 rounded-md text-sm font-semibold transition
+                                        {{ $page == $currentPage ? 'bg-teal-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-teal-50' }}">
+                                    {{ $page }}
+                                </a>
+                            @endfor
+                        </div>
+                        @endif
                 </div>
             </div>
 

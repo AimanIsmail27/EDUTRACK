@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\Course;
 use App\Models\Student;
-use App\Models\User; // Added to fetch lecturers
+use App\Models\User;
+use App\Models\AssignmentSubmission;
+
 
 class CourseController extends Controller
 {
@@ -16,16 +20,13 @@ class CourseController extends Controller
      */
     public function index(Request $request)
     {
-        // Added eager loading 'coordinator' to prevent N+1 query issues
         $query = Course::with('coordinator')->orderBy('C_Code');
 
         if ($request->filled('criteria')) {
             $filterBy = $request->filter_by;
             $criteria = $request->criteria;
 
-            if ($filterBy == 'C_Code' || $filterBy == 'C_Name') {
-                $query->where($filterBy, 'like', '%' . $criteria . '%');
-            } elseif ($filterBy == 'C_SemOffered') {
+            if ($filterBy == 'C_Code' || $filterBy == 'C_Name' || $filterBy == 'C_SemOffered') {
                 $query->where($filterBy, 'like', '%' . $criteria . '%');
             }
         }
@@ -33,13 +34,12 @@ class CourseController extends Controller
         $courses = $query->get();
         return view('M2.administrator.viewAllCourse', compact('courses'));
     }
-    
+
     /**
      * Show form to create a new course
      */
     public function create()
     {
-        // Fetch all users with the role 'lecturer' for the dropdown and multi-select
         $lecturers = User::where('role', 'lecturer')->orderBy('name')->get();
         return view('M2.administrator.addCourse', compact('lecturers'));
     }
@@ -55,49 +55,41 @@ class CourseController extends Controller
             'C_Hour' => 'required|integer',
             'C_SemOffered' => 'required|array|min:1', 
             'C_SemOffered.*' => 'integer|in:1,2,3',
-            'coordinator_id' => 'required|exists:users,id', // Validate Coordinator
-            'lecturer_ids' => 'nullable|array', // Validate Teaching Team
+            'coordinator_id' => 'required|exists:users,id',
+            'lecturer_ids' => 'nullable|array',
             'lecturer_ids.*' => 'exists:users,id',
         ], [
-             'C_SemOffered.required' => 'The Semester Offered field requires at least one selection.',
-             'coordinator_id.required' => 'You must assign a Course Coordinator.',
+            'C_SemOffered.required' => 'The Semester Offered field requires at least one selection.',
+            'coordinator_id.required' => 'You must assign a Course Coordinator.',
         ]);
-        
+
         $semestersString = implode(',', $request->C_SemOffered);
 
-        // 1. Create the course record
         $course = Course::create([
             'C_Code' => $request->C_Code,
             'C_Name' => $request->C_Name,
             'C_Hour' => $request->C_Hour,
-            'C_Prerequisites' => $request->C_Prerequisites, 
+            'C_Prerequisites' => $request->C_Prerequisites,
             'C_SemOffered' => $semestersString,
-            'coordinator_id' => $request->coordinator_id, // New Field
+            'coordinator_id' => $request->coordinator_id,
             'C_Description' => $request->C_Description,
         ]);
 
-        // 2. Attach involved lecturers to the pivot table
         if ($request->has('lecturer_ids')) {
             $course->lecturers()->attach($request->lecturer_ids);
         }
 
-        return redirect()
-            ->route('admin.viewAllCourse')
-            ->with('success', 'Course added successfully with teaching team');
+        return redirect()->route('admin.viewAllCourse')
+                         ->with('success', 'Course added successfully with teaching team');
     }
 
     /**
      * Display a specific course
      */
-    /**
-     * Display a specific course (Shared by Admin and Lecturer)
-     */
     public function show($code)
     {
-        // 1. Eager load relationships to ensure we have coordinator and teaching team data
         $course = Course::with(['participants', 'lecturers', 'coordinator'])->findOrFail($code);
 
-        // 2. Map participants data
         $courseParticipants = $course->participants->map(function($student) {
             return [
                 'matric_id' => $student->MatricID,
@@ -107,7 +99,6 @@ class CourseController extends Controller
             ];
         });
 
-        // 3. Map grade data (Assuming 'grade' relationship exists on Student model)
         $studentGrades = $course->participants->map(function($student) {
             return [
                 'matric_id' => $student->MatricID,
@@ -121,9 +112,6 @@ class CourseController extends Controller
             ];
         });
 
-        // 4. Dynamic View Logic: Switch between Admin and Lecturer layouts
-        // If the user is an administrator, show the admin view (with enroll/delete buttons)
-        // Otherwise, show the lecturer view (cleaner, no enroll/delete buttons)
         $viewPath = (auth()->user()->role === 'administrator') 
                     ? 'M2.administrator.viewSpecificCourse' 
                     : 'M2.lecturer.viewSpecificCourse';
@@ -147,7 +135,7 @@ class CourseController extends Controller
     public function update(Request $request, $code)
     {
         $course = Course::findOrFail($code);
-        
+
         $request->validate([
             'C_Name' => 'required|string|unique:courses,C_Name,' . $course->C_Code . ',C_Code',
             'C_Hour' => 'required|integer',
@@ -157,7 +145,7 @@ class CourseController extends Controller
             'lecturer_ids' => 'nullable|array',
             'lecturer_ids.*' => 'exists:users,id',
         ]);
-        
+
         $semestersString = implode(',', $request->C_SemOffered);
 
         $course->update([
@@ -169,12 +157,10 @@ class CourseController extends Controller
             'C_Description' => $request->C_Description,
         ]);
 
-        // Sync the involved lecturers (removes old ones, adds new ones)
         $course->lecturers()->sync($request->lecturer_ids ?? []);
 
-        return redirect()
-            ->route('admin.viewAllCourse')
-            ->with('success', 'Course updated successfully');
+        return redirect()->route('admin.viewAllCourse')
+                         ->with('success', 'Course updated successfully');
     }
 
     /**
@@ -183,12 +169,11 @@ class CourseController extends Controller
     public function destroy($code)
     {
         Course::findOrFail($code)->delete();
-        return redirect()
-            ->route('admin.viewAllCourse')
-            ->with('success', 'Course deleted successfully');
+        return redirect()->route('admin.viewAllCourse')
+                         ->with('success', 'Course deleted successfully');
     }
 
-    // --- Student Participant Management (Existing Logic) ---
+    // --- Student Participant Management ---
 
     public function searchStudents(Request $request)
     {
@@ -203,20 +188,19 @@ class CourseController extends Controller
             $students = DB::table('student')
                 ->where(function($query) use ($term) {
                     $query->where('MatricID', 'LIKE', "%{$term}%")
-                        ->orWhere('Name', 'LIKE', "%{$term}%");
+                          ->orWhere('Name', 'LIKE', "%{$term}%");
                 })
                 ->whereNotIn('MatricID', $enrolledMatrics)
                 ->limit(10)
                 ->get(['MatricID', 'Name']);
 
-            $formatted = $students->map(function($s) {
+            return response()->json($students->map(function($s) {
                 return [
                     'matric_id' => $s->MatricID,
                     'name'      => $s->Name
                 ];
-            });
+            }));
 
-            return response()->json($formatted);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -241,9 +225,8 @@ class CourseController extends Controller
                 'year' => date('Y') 
             ]);
 
-            return redirect()
-                ->route('admin.courses.show', ['code' => $courseCode, 'tab' => 'participants'])
-                ->with('success', "Student added successfully.");
+            return redirect()->route('admin.courses.show', ['code' => $courseCode, 'tab' => 'participants'])
+                             ->with('success', "Student added successfully.");
 
         } catch (\Exception $e) {
             Log::error("Failed to add participant: " . $e->getMessage());
@@ -256,23 +239,20 @@ class CourseController extends Controller
         try {
             $course = Course::findOrFail($courseCode);
             $course->participants()->detach($matricId);
-            return redirect()
-                ->route('admin.courses.show', ['code' => $courseCode, 'tab' => 'participants'])
-                ->with('success', "Student removed.");
+            return redirect()->route('admin.courses.show', ['code' => $courseCode, 'tab' => 'participants'])
+                             ->with('success', "Student removed.");
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to remove student.');
         }
     }
 
     /**
-     * Real Data Fetching for Lecturer Dashboard
+     * Lecturer Courses
      */
     public function lecturerCourses()
     {
         $lecturerId = auth()->id();
 
-        // Fetch courses where user is Coordinator OR in the Teaching Team
-        // Use withCount to get participant statistics automatically
         $courses = Course::withCount('participants')
             ->where('coordinator_id', $lecturerId)
             ->orWhereHas('lecturers', function($query) use ($lecturerId) {
@@ -284,78 +264,142 @@ class CourseController extends Controller
     }
 
     /**
-     * Display courses enrolled by the authenticated student
+     * Student Courses
      */
     public function studentCourses()
     {
-        // 1. Get the authenticated user's ID
-        $userId = auth()->id();
+        $matricId = auth()->user()->matric_id;
 
-        /* * 2. Find the student record associated with this user.
-         * Assuming your User model has a student() relationship and 
-         * the 'student' table has a 'user_id' column.
-         */
-        $student = Student::where('user_id', $userId)->first();
+        $student = Student::where('MatricID', $matricId)->first();
 
         if (!$student) {
             return view('M2.student.myCourses', ['courses' => collect()]);
         }
 
-        // 3. Fetch courses via the pivot table relationship defined in Student Model
-        // We eager load 'coordinator' to show the lecturer's name on the card
-        $courses = $student->courses()
-            ->with('coordinator')
-            ->get();
+        $courses = $student->courses()->with('coordinator')->get();
 
         return view('M2.student.myCourses', compact('courses'));
     }
 
     /**
-     * Display specific course details for students
+     * Student Course Details
      */
     public function studentCourseShow($code)
 {
-    // 1. Fetch course without the 'grade' relationship to avoid errors
-    $course = Course::with(['materials', 'lecturers', 'coordinator', 'participants'])->findOrFail($code);
+    $course = Course::with([
+        'materials',
+        'lecturers',
+        'coordinator',
+        'participants'
+    ])->findOrFail($code);
 
-    // 2. Security Check: Ensure student is actually enrolled
-    $student = Student::where('user_id', auth()->id())->first();
-    if (!$student || !$course->participants->contains($student->MatricID)) {
+    // Logged-in student via auth user
+    $studentUser = auth()->user(); // This has id and matric_id
+    $student = Student::where('MatricID', $studentUser->matric_id)->firstOrFail();
+
+    // Enrollment check
+    if (!$course->participants->contains('MatricID', $student->MatricID)) {
         abort(403, 'You are not enrolled in this course.');
     }
 
-    // 3. Map participants data for the Classmates tab
-    $courseParticipants = $course->participants->map(function($std) {
+    /* ---------------------------------
+       PARTICIPANTS TAB (UNCHANGED)
+    --------------------------------- */
+    $courseParticipants = $course->participants->map(function ($std) {
         return [
             'matric_id' => $std->MatricID,
             'full_name' => $std->Name,
         ];
     });
 
-    // 4. Dummy Grade Logic: Providing placeholder values so the view works
-    $studentGrades = $course->participants->map(function($std) {
-        return [
-            'matric_id' => $std->MatricID,
-            'full_name' => $std->Name,
-            'quiz1'     => 0, 
-            'quiz2'     => 0,
-            'ia'        => 0,
-            'gp'        => 0,
-            'total'     => 0,
-        ];
-    });
+    /* ---------------------------------
+       MY GRADES (REAL DATA)
+    --------------------------------- */
+    $submissions = AssignmentSubmission::with('assignment')
+        ->where('student_id', $studentUser->id) // Use users.id, not students
+        ->where('status', 'Graded')
+        ->whereHas('assignment', function ($q) use ($course) {
+            $q->where('course_code', $course->C_Code);
+        })
+        ->get();
 
-    // 5. Pass data to the view
-    return view('M2.student.viewSpecificCourse', compact('course', 'courseParticipants', 'studentGrades'));
+    // Initialize grades
+    $grades = [
+        'quiz1' => 0,
+        'quiz2' => 0,
+        'ia'    => 0,
+        'gp'    => 0,
+    ];
+
+    foreach ($submissions as $submission) {
+        $assignment = $submission->assignment;
+        if (!$assignment || $assignment->total_marks <= 0) continue;
+
+        $percentage = ($submission->score / $assignment->total_marks) * 100;
+
+        // Map assessment types based on title
+        switch (strtolower($assignment->title)) {
+            case 'quiz 1':
+            case 'quiz1':
+                $grades['quiz1'] = round($percentage, 2);
+                break;
+
+            case 'quiz 2':
+            case 'quiz2':
+                $grades['quiz2'] = round($percentage, 2);
+                break;
+
+            case 'individual assignment':
+            case 'ia':
+                $grades['ia'] = round($percentage, 2);
+                break;
+
+            case 'group project':
+            case 'gp':
+                $grades['gp'] = round($percentage, 2);
+                break;
+        }
+    }
+
+    // Weightage calculation
+    $total =
+        ($grades['quiz1'] * 0.10) +
+        ($grades['quiz2'] * 0.10) +
+        ($grades['ia']    * 0.30) +
+        ($grades['gp']    * 0.50);
+
+    // Structure for Blade
+    $studentGrades = collect([
+        [
+            'matric_id' => $student->MatricID,
+            'full_name' => $student->Name,
+            'quiz1'     => $grades['quiz1'],
+            'quiz2'     => $grades['quiz2'],
+            'ia'        => $grades['ia'],
+            'gp'        => $grades['gp'],
+            'total'     => round($total, 2),
+        ]
+    ]);
+
+    return view(
+        'M2.student.viewSpecificCourse',
+        compact('course', 'courseParticipants', 'studentGrades')
+    );
 }
 
+
+
+    /**
+     * Student Assessments
+     */
     public function studentAssessments()
     {
-        $student = Student::where('user_id', auth()->id())->first();
-        
-        // Fetch courses with grades for this specific student
+        $matricId = auth()->user()->matric_id;
+
+        $student = Student::where('MatricID', $matricId)->first();
+
         $courses = $student ? $student->courses()->withPivot('semester', 'year')->get() : collect();
-        
+
         return view('M2.student.assessments', compact('courses'));
     }
 }

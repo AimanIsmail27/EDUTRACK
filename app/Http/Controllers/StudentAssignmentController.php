@@ -12,20 +12,28 @@ use Illuminate\Support\Facades\Storage;
 class StudentAssignmentController extends Controller
 {
     public function index()
-    {
-        $studentId = Auth::id();
+{
+    // Get the logged-in student's MatricID from the authenticated user
+    $matricId = Auth::user()->matric_id;
 
-        $assignments = Assignment::with([
-                'course',
-                'submissions' => function ($query) use ($studentId) {
-                    $query->where('student_id', $studentId);
-                }
-            ])
-            ->orderBy('due_at')
-            ->get();
+    // Find the student record
+    $student = \App\Models\Student::where('MatricID', $matricId)->first();
 
-        return view('M3.student.assignmentIndex', compact('assignments'));
+    if (!$student) {
+        abort(403, 'Student profile not found.');
     }
+
+    $assignments = Assignment::with([
+            'course',
+            'submissions' => fn($query) => $query->where('student_id', $student->id)
+        ])
+        ->whereHas('course.participants', fn($q) => $q->where('student_matric', $matricId))
+        ->orderBy('due_at')
+        ->get();
+
+    return view('M3.student.assignmentIndex', compact('assignments'));
+}
+
 
     public function show(Assignment $assignment)
     {
@@ -163,41 +171,59 @@ class StudentAssignmentController extends Controller
     }
 
     public function calendarEvents()
-    {
-        $studentId = Auth::id();
+{
+    // 1. Get the matric_id from the Auth user
+    $user = Auth::user();
+    $matricId = $user->matric_id;
 
-        $assignments = Assignment::with([
-                'course',
-                'submissions' => function ($query) use ($studentId) {
-                    $query->where('student_id', $studentId);
-                }
-            ])
-            ->whereNotNull('due_at')
-            ->orderBy('due_at')
-            ->get(['id', 'title', 'course_code', 'due_at', 'total_marks']);
+    // 2. Find the student record to get the internal ID for submissions
+    $student = \App\Models\Student::where('MatricID', $matricId)->first();
 
-        $events = $assignments->map(function (Assignment $assignment) {
-            $courseCode = $assignment->course_code;
-            $title = $courseCode ? $assignment->title . ' · ' . $courseCode : $assignment->title;
-
-            $submission = $assignment->submissions->first();
-            $suffix = $submission ? ' (' . $submission->status . ')' : '';
-
-            return [
-                'id' => (string) $assignment->id,
-                'title' => $title . $suffix,
-                'start' => $assignment->due_at?->toIso8601String(),
-                'allDay' => false,
-                'extendedProps' => [
-                    'assignmentTitle' => $assignment->title,
-                    'courseCode' => $courseCode,
-                    'courseName' => optional($assignment->course)->C_Name,
-                    'totalMarks' => $assignment->total_marks,
-                    'viewUrl' => route('student.assignments.show', $assignment),
-                ],
-            ];
-        })->values();
-
-        return response()->json($events);
+    if (!$student) {
+        return response()->json([]); // Return empty if student doesn't exist
     }
+
+    // 3. Query assignments based on course participants (enrollment)
+    $assignments = Assignment::with([
+            'course',
+            'submissions' => function ($query) use ($student) {
+                $query->where('student_id', $student->id);
+            }
+        ])
+        // Filter: Only assignments from courses where this student is a participant
+        ->whereHas('course.participants', function($q) use ($matricId) {
+            $q->where('student_matric', $matricId);
+        })
+        ->whereNotNull('due_at')
+        ->get(['id', 'title', 'course_code', 'due_at', 'total_marks']);
+
+    // 4. Map events for FullCalendar
+    $events = $assignments->map(function (Assignment $assignment) {
+        $courseCode = $assignment->course_code;
+        $title = $courseCode ? $assignment->title . ' · ' . $courseCode : $assignment->title;
+
+        $submission = $assignment->submissions->first();
+        $suffix = $submission ? ' (' . $submission->status . ')' : '';
+
+        // FIX: Use 'T' format to match the wall-clock time in DB (prevents timezone shifts)
+        $start = $assignment->due_at ? $assignment->due_at->format('Y-m-d\TH:i:s') : null;
+
+        return [
+            'id' => (string) $assignment->id,
+            'title' => $title . $suffix,
+            'start' => $start,
+            'end' => $start, // Forces point-in-time deadline
+            'allDay' => false,
+            'extendedProps' => [
+                'assignmentTitle' => $assignment->title,
+                'courseCode' => $courseCode,
+                'courseName' => optional($assignment->course)->C_Name,
+                'totalMarks' => $assignment->total_marks,
+                'viewUrl' => route('student.assignments.show', $assignment),
+            ],
+        ];
+    })->values();
+
+    return response()->json($events);
+}
 }

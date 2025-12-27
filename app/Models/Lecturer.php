@@ -21,4 +21,17 @@ class Lecturer extends Model
         'Name',
         'Email',
     ];
+
+    public function teachingCourses()
+{
+    return $this->belongsToMany(
+        Course::class, 
+        'course_lecturer', 
+        'user_id', // foreign key in pivot table pointing to users table
+        'course_code',
+        'StaffID', // local key in lecturers table
+        'C_Code'
+    );
+}
+
 }

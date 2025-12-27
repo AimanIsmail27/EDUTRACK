@@ -21,8 +21,11 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        // ADDED THE 'role' FIELD HERE
         'role',
+        'staff_id',
+        'matric_id',
+        'course',
+        'year',
         'matric_id',
         'course',
         'year',
@@ -75,4 +78,17 @@ class User extends Authenticatable
             'C_Code'
         )->withTimestamps();
     }
+
+    public function student()
+{
+    return $this->hasOne(Student::class, 'MatricID', 'matric_id');
+}
+
+public function lecturer()
+{
+    return $this->hasOne(Lecturer::class, 'Email', 'email');
+}
+
+
+
 }

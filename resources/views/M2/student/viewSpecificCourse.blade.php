@@ -4,16 +4,17 @@
 
 @section('content')
 
+
 @php
     $activeTab = request()->query('tab', 'overview');
 
-    // 1. Get current student's Matric ID via relationship
+    // Get current student's Matric ID
     $currentUserMatric = auth()->user()->student->MatricID ?? null;
 
-    // 2. Filter grades to ONLY show this student's data for privacy
+    // Filter grades to ONLY show this student's data
     $myGrade = $studentGrades->firstWhere('matric_id', $currentUserMatric);
 
-    // 3. Tab styling logic
+    // Tab styling logic
     $tabClass = function($tabName) use ($activeTab) {
         return $activeTab === $tabName 
             ? 'border-b-2 border-emerald-600 text-emerald-600 font-bold bg-emerald-50/50' 
@@ -63,7 +64,7 @@
                     </div>
                 </div>
 
-                {{-- WEEKLY CONTENT - VERTICAL CATEGORY STACK --}}
+                {{-- WEEKLY CONTENT --}}
                 <div class="space-y-4">
                     <h2 class="text-2xl font-black text-emerald-950">Learning Materials</h2>
 
@@ -125,7 +126,7 @@
                 </div>
             </div>
             
-        {{-- 2. PARTICIPANTS TAB (VIEW CLASSMATES) --}}
+        {{-- 2. PARTICIPANTS TAB --}}
         @elseif ($activeTab === 'participants')
             <div x-data="{ searchClass: '' }">
                 <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -155,58 +156,67 @@
             </div>
 
         {{-- 3. GRADE TAB (PRIVATE PERFORMANCE CARD) --}}
-        @elseif ($activeTab === 'grade')
-            <div class="max-w-2xl mx-auto">
-                <h2 class="text-2xl font-black text-emerald-950 mb-6">Your Academic Performance</h2>
-                
-                @if($myGrade)
-                    <div class="bg-white border-2 border-emerald-100 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-emerald-900/5">
-                        {{-- Score Summary Header --}}
-                        <div class="bg-emerald-600 p-8 text-center text-white">
-                            <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-2">Overall Course Progress</p>
-                            <h3 class="text-6xl font-black">{{ $myGrade['total'] }}<span class="text-2xl">%</span></h3>
-                        </div>
+@elseif ($activeTab === 'grade')
+    <div class="max-w-2xl mx-auto">
+        <h2 class="text-2xl font-black text-emerald-950 mb-6">Your Academic Performance</h2>
+        
+        @php
+            // Get the logged-in student's matric ID
+            $currentUserMatric = auth()->user()->matric_id ?? null;
+            $myGrade = $studentGrades->firstWhere('matric_id', $currentUserMatric);
+        @endphp
 
-                        {{-- Individual Breakdown --}}
-                        <div class="p-8 space-y-4">
-                            @php
-                                $items = [
-                                    ['label' => 'Quiz 1', 'weight' => '10%', 'score' => $myGrade['quiz1']],
-                                    ['label' => 'Quiz 2', 'weight' => '10%', 'score' => $myGrade['quiz2']],
-                                    ['label' => 'Individual Assignment', 'weight' => '30%', 'score' => $myGrade['ia']],
-                                    ['label' => 'Group Project', 'weight' => '50%', 'score' => $myGrade['gp']],
-                                ];
-                            @endphp
+        @if($myGrade && ($myGrade['quiz1'] + $myGrade['quiz2'] + $myGrade['ia'] + $myGrade['gp'] > 0))
+            <div class="bg-white border-2 border-emerald-100 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-emerald-900/5">
+                {{-- Score Summary Header --}}
+                <div class="bg-emerald-600 p-8 text-center text-white">
+                    <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-2">Overall Course Progress</p>
+                    <h3 class="text-6xl font-black">{{ $myGrade['total'] }}<span class="text-2xl">%</span></h3>
+                </div>
 
-                            @foreach($items as $item)
-                            <div class="flex items-center justify-between p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
-                                <div>
-                                    <p class="text-sm font-bold text-slate-800">{{ $item['label'] }}</p>
-                                    <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Assessment Weight: {{ $item['weight'] }}</p>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-lg font-black text-slate-700">{{ $item['score'] }}%</span>
-                                </div>
+                {{-- Individual Breakdown --}}
+                <div class="p-8 space-y-4">
+                    @php
+                        $items = [
+                            ['label' => 'Quiz 1', 'weight' => '10%', 'score' => $myGrade['quiz1']],
+                            ['label' => 'Quiz 2', 'weight' => '10%', 'score' => $myGrade['quiz2']],
+                            ['label' => 'Individual Assignment', 'weight' => '30%', 'score' => $myGrade['ia']],
+                            ['label' => 'Group Project', 'weight' => '50%', 'score' => $myGrade['gp']],
+                        ];
+                    @endphp
+
+                    @foreach($items as $item)
+                        <div class="flex items-center justify-between p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
+                            <div>
+                                <p class="text-sm font-bold text-slate-800">{{ $item['label'] }}</p>
+                                <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Assessment Weight: {{ $item['weight'] }}</p>
                             </div>
-                            @endforeach
-                        </div>
-
-                        {{-- Final Verdict Status --}}
-                        <div class="px-8 pb-8">
-                            <div class="p-4 rounded-2xl text-center {{ $myGrade['total'] >= 50 ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700' }}">
-                                <p class="text-xs font-black uppercase tracking-widest">
-                                    Current Status: {{ $myGrade['total'] >= 50 ? 'Passing' : 'Below 50%' }}
-                                </p>
+                            <div class="text-right">
+                                <span class="text-lg font-black text-slate-700">{{ $item['score'] }}%</span>
                             </div>
                         </div>
+                    @endforeach
+                </div>
+
+                {{-- Final Verdict Status --}}
+                <div class="px-8 pb-8">
+                    <div class="p-4 rounded-2xl text-center {{ $myGrade['total'] >= 50 ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700' }}">
+                        <p class="text-xs font-black uppercase tracking-widest">
+                            Current Status: {{ $myGrade['total'] >= 50 ? 'Passing' : 'Below 50%' }}
+                        </p>
                     </div>
-                @else
-                    <div class="p-12 text-center bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
-                        <svg class="w-12 h-12 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <p class="text-slate-400 font-bold text-sm italic">Marks for this course haven't been released yet.</p>
-                    </div>
-                @endif
+                </div>
             </div>
+        @else
+            <div class="p-12 text-center bg-slate-50 rounded-[2rem] border-2 border-dashed border-slate-200">
+                <svg class="w-12 h-12 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <p class="text-slate-400 font-bold text-sm italic">Marks for this course haven't been released yet.</p>
+            </div>
+        @endif
+    </div>
+
+
+
 
         {{-- 4. ASSESSMENT INFO TAB --}}
         @elseif ($activeTab === 'assessment')
