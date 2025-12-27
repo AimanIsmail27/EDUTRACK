@@ -216,163 +216,123 @@ class StudentController extends Controller
      * Upload students from CSV file.
      */
     public function uploadCsv(Request $request)
-    {
-        $validator = Validator::make(
-            $request->all(),
-            ['csv_file' => 'required|file|mimes:csv,txt|max:2048'],
-            ['csv_file.mimes' => 'Invalid file format. Only CSV files are allowed.']
-        );
+{
+    $validator = Validator::make(
+        $request->all(),
+        ['csv_file' => 'required|file|mimes:csv,txt|max:2048'],
+        ['csv_file.mimes' => 'Invalid file format. Only CSV files are allowed.']
+    );
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => $validator->errors()->first('csv_file') ?? 'Invalid file format. Only CSV files are allowed.',
-                'success_count' => 0,
-                'error_count' => 0,
-                'errors' => $validator->errors()->all(),
-            ], 422);
-        }
-
-        $file = $request->file('csv_file');
-        $path = $file->getRealPath();
-        
-        $data = array_map('str_getcsv', file($path));
-        $header = array_shift($data); // Get header row
-        
-        // Normalize header: trim and convert to lowercase for matching
-        $header = array_map(function($h) {
-            return strtolower(trim($h));
-        }, $header);
-        
-        // Find column indices by header name (case-insensitive)
-        $matricIdIndex = array_search('matricid', $header);
-        $nameIndex = array_search('name', $header);
-        $courseIndex = array_search('course', $header);
-        $yearIndex = array_search('year', $header);
-        
-        // Validate that all required columns exist
-        if ($matricIdIndex === false || $nameIndex === false || $courseIndex === false || $yearIndex === false) {
-            return response()->json([
-                'success' => false,
-                'message' => 'CSV file must contain columns: MatricID, Name, Course, Year',
-                'success_count' => 0,
-                'error_count' => 0,
-                'errors' => ['Missing required columns in CSV header'],
-            ]);
-        }
-        
-        $successCount = 0;
-        $errorCount = 0;
-        $errors = [];
-
-        foreach ($data as $index => $row) {
-            try {
-                // Skip empty rows
-                if (empty(array_filter($row))) {
-                    continue;
-                }
-
-                // Ensure row has enough columns
-                $maxIndex = max($matricIdIndex, $nameIndex, $courseIndex, $yearIndex);
-                if (count($row) < $maxIndex + 1) {
-                    $errors[] = "Row " . ($index + 2) . ": Insufficient columns";
-                    $errorCount++;
-                    continue;
-                }
-
-                // Map CSV columns using header indices
-                $matricId = trim($row[$matricIdIndex] ?? '');
-                $name = trim($row[$nameIndex] ?? '');
-                $course = trim($row[$courseIndex] ?? '');
-                $year = trim($row[$yearIndex] ?? '');
-                
-                // Generate email from matric_id (students don't need email input)
-                $email = strtolower($matricId) . '@student.edu';
-                
-                // Auto-generate default password
-                $password = 'password123';
-
-                // Validate required fields with specific error messages
-                $missingFields = [];
-                if (empty($matricId)) $missingFields[] = 'MatricID';
-                if (empty($name)) $missingFields[] = 'Name';
-                if (empty($course)) $missingFields[] = 'Course';
-                if (empty($year)) $missingFields[] = 'Year';
-
-                if (!empty($missingFields)) {
-                    $errors[] = "Row " . ($index + 2) . ": Missing required fields (" . implode(', ', $missingFields) . ")";
-                    $errorCount++;
-                    continue;
-                }
-
-                // Check if user already exists (by matric_id only, email is optional)
-                if (User::where('matric_id', $matricId)->exists()) {
-                    $errors[] = "Row " . ($index + 2) . ": Matric ID already exists";
-                    $errorCount++;
-                    continue;
-                }
-
-                DB::beginTransaction();
-
-                // Create User
-                $user = User::create([
-                    'matric_id' => $matricId,
-                    'name' => $name,
-                    'email' => $email,
-                    'course' => $course,
-                    'year' => $year,
-                    'password' => Hash::make($password),
-                    'role' => 'student',
-                ]);
-
-                // Create Student record
-                Student::create([
-                    'MatricID' => $matricId,
-                    'Name' => $name,
-                    'Email' => $email,
-                    'Course' => $course,
-                    'Year' => $year,
-                ]);
-
-                DB::commit();
-                
-                // Send email notification with plain text password using PHPMailer
-                try {
-                    $mailService = new MailService();
-                    $mailService->sendAccountEmail($email, $name, $password, 'student', $matricId, null, $course, $year);
-                } catch (\Exception $mailException) {
-                    // Log email error but don't fail the registration
-                    \Log::error('Failed to send registration email: ' . $mailException->getMessage());
-                }
-                
-                $successCount++;
-
-            } catch (\Exception $e) {
-                DB::rollBack();
-                $errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
-                $errorCount++;
-            }
-        }
-
-        // Show success message if any records were successfully added
-        if ($successCount > 0) {
-            $message = "Successfully registered {$successCount} student(s)!";
-            if ($errorCount > 0) {
-                $message .= " ({$errorCount} record(s) skipped due to errors)";
-            }
-        } else {
-            $message = "Upload failed. No students were registered.";
-            if (!empty($errors)) {
-                $message .= " " . count($errors) . " error(s) occurred.";
-            }
-        }
-
+    if ($validator->fails()) {
         return response()->json([
-            'success' => $successCount > 0,
-            'message' => $message,
-            'success_count' => $successCount,
-            'error_count' => $errorCount,
-            'errors' => $errors,
+            'success' => false,
+            'message' => $validator->errors()->first('csv_file') ?? 'Invalid file format. Only CSV files are allowed.',
+            'success_count' => 0,
+            'error_count' => 0,
+            'errors' => $validator->errors()->all(),
+        ], 422);
+    }
+
+    $file = $request->file('csv_file');
+
+    // Save the file to storage/app/uploads (Railway-safe)
+    $path = $file->store('uploads');
+
+    // Get full path to read file
+    $fullPath = storage_path('app/' . $path);
+
+    // Read CSV safely
+    $data = array_map('str_getcsv', file($fullPath));
+    $header = array_shift($data);
+
+    // Normalize header
+    $header = array_map(fn($h) => strtolower(trim($h)), $header);
+
+    $matricIdIndex = array_search('matricid', $header);
+    $nameIndex = array_search('name', $header);
+    $courseIndex = array_search('course', $header);
+    $yearIndex = array_search('year', $header);
+
+    if ($matricIdIndex === false || $nameIndex === false || $courseIndex === false || $yearIndex === false) {
+        return response()->json([
+            'success' => false,
+            'message' => 'CSV file must contain columns: MatricID, Name, Course, Year',
+            'success_count' => 0,
+            'error_count' => 0,
+            'errors' => ['Missing required columns in CSV header'],
         ]);
     }
+
+    $successCount = 0;
+    $errorCount = 0;
+    $errors = [];
+
+    foreach ($data as $index => $row) {
+        try {
+            if (empty(array_filter($row))) continue;
+
+            $matricId = trim($row[$matricIdIndex] ?? '');
+            $name = trim($row[$nameIndex] ?? '');
+            $course = trim($row[$courseIndex] ?? '');
+            $year = trim($row[$yearIndex] ?? '');
+
+            if (!$matricId || !$name || !$course || !$year) {
+                $errors[] = "Row " . ($index + 2) . ": Missing required fields";
+                $errorCount++;
+                continue;
+            }
+
+            if (User::where('matric_id', $matricId)->exists()) {
+                $errors[] = "Row " . ($index + 2) . ": Matric ID already exists";
+                $errorCount++;
+                continue;
+            }
+
+            DB::beginTransaction();
+
+            $password = 'password123';
+            $email = strtolower($matricId) . '@student.edu';
+
+            User::create([
+                'matric_id' => $matricId,
+                'name' => $name,
+                'email' => $email,
+                'course' => $course,
+                'year' => $year,
+                'password' => Hash::make($password),
+                'role' => 'student',
+            ]);
+
+            Student::create([
+                'MatricID' => $matricId,
+                'Name' => $name,
+                'Email' => $email,
+                'Course' => $course,
+                'Year' => $year,
+            ]);
+
+            DB::commit();
+
+            $successCount++;
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $errors[] = "Row " . ($index + 2) . ": " . $e->getMessage();
+            $errorCount++;
+        }
+    }
+
+    $message = $successCount > 0
+        ? "Successfully registered {$successCount} student(s)!" . ($errorCount > 0 ? " ({$errorCount} skipped)" : '')
+        : "Upload failed. No students were registered.";
+
+    return response()->json([
+        'success' => $successCount > 0,
+        'message' => $message,
+        'success_count' => $successCount,
+        'error_count' => $errorCount,
+        'errors' => $errors,
+    ]);
+}
+
 }
