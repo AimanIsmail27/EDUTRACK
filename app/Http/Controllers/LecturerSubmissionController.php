@@ -46,23 +46,32 @@ class LecturerSubmissionController extends Controller
     }
 
    public function download(Assignment $assignment, AssignmentSubmission $submission)
-    {
-        $this->authorizeAssignment($assignment);
-        abort_if($submission->assignment_id !== $assignment->id, 404);
+{
+    $this->authorizeAssignment($assignment);
+    abort_if($submission->assignment_id !== $assignment->id, 404);
 
-        if (!$submission->file_path) {
-            abort(404);
-        }
-
-        $path = $submission->file_path;
-        $disk = Storage::disk('private')->exists($path) ? 'private' : (Storage::disk('public')->exists($path) ? 'public' : null);
-        if (!$disk) {
-            abort(404);
-        }
-
-        $filename = basename($path) ?: 'submission.pdf';
-        return Storage::disk($disk)->download($path, $filename);
+    if (!$submission->file_path) {
+        abort(404, 'Submission file not found.');
     }
+
+    // Determine the storage disk and full path
+    $disk = Storage::disk('private')->exists($submission->file_path) ? 'private' :
+            (Storage::disk('public')->exists($submission->file_path) ? 'public' : null);
+
+    abort_if(!$disk, 404, 'File does not exist on server.');
+
+    // Generate a clean filename
+    $filename = pathinfo($submission->file_path, PATHINFO_BASENAME);
+    if (empty($filename)) {
+        $filename = 'submission.pdf';
+    }
+
+    // Stream the file with correct headers to prevent corruption
+    return response()->streamDownload(function () use ($disk, $submission) {
+        echo Storage::disk($disk)->get($submission->file_path);
+    }, $filename);
+}
+
 
 
     protected function authorizeAssignment(Assignment $assignment): void
