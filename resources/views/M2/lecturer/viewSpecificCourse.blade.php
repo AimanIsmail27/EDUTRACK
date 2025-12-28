@@ -230,7 +230,21 @@
                 </table>
             </div>
 
-        {{-- 3. GRADE TAB --}}
+
+             {{-- 3. ASSESSMENT TAB --}}
+        @elseif ($activeTab === 'assessment')
+            <h2 class="text-2xl font-bold text-gray-800 border-b pb-2 border-gray-100 mb-6">Assessment Breakdown (100% Total)</h2>
+            <div class="space-y-4">
+                @foreach (['Quiz 1' => '10%', 'Quiz 2' => '10%', 'Individual Assignment' => '30%', 'Group Project' => '50%'] as $name => $weight)
+                    <div class="flex items-center justify-between p-4 bg-teal-50 rounded-xl border border-teal-200 shadow-sm">
+                        <p class="font-semibold text-lg text-gray-800">{{ $name }}</p>
+                        <span class="text-xl font-extrabold text-teal-600">{{ $weight }}</span>
+                    </div>
+                @endforeach
+            </div>
+
+                        
+        {{-- 4. GRADE TAB --}}
         @elseif ($activeTab === 'grade')
             <div class="overflow-x-auto rounded-xl border border-slate-100 shadow-sm">
                 <table class="min-w-full divide-y divide-slate-100 text-sm">
