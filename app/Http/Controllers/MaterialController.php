@@ -67,25 +67,19 @@ class MaterialController extends Controller
     /**
      * Download the material.
      */
-       public function download($id)
-{
-    $material = LearningMaterial::findOrFail($id);
-
-    // Ensure file exists on public disk
-    if (!Storage::disk('public')->exists($material->file_path)) {
-        abort(404, 'File not found');
-    }
-
-    // Get full absolute path
-    $fullPath = Storage::disk('public')->path($material->file_path);
-
-    // Force proper binary download (no corruption)
-    return response()->download(
-        $fullPath,
-        $material->file_original_name
-    );
-}
-
+       public function download($id) { 
+           $material = LearningMaterial::findOrFail($id); 
+           $path = storage_path('app/public/' . $material->file_path); 
+           if (!file_exists($path)) { abort(404, 'File not found'); 
+                                    } 
+           return response()->streamDownload(function () use ($path) { $stream = fopen($path, 'rb'); 
+            fpassthru($stream); 
+            fclose($stream); }, $material->file_original_name, [
+            'Content-Type' => 'application/pdf', 
+            'Content-Disposition' => 'inline; 
+            filename="'.$material->file_original_name.'"', 
+                ]);
+       }
 
 
 
