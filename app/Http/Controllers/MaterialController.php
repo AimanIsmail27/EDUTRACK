@@ -40,7 +40,7 @@ class MaterialController extends Controller
                     'public'
                 );
 
-                );
+                
 
                 // 3. Save to Database
                 LearningMaterial::create([
