@@ -67,21 +67,21 @@ class MaterialController extends Controller
     /**
      * Download the material.
      */
-    public function download($id)
+       public function download($id)
     {
         $material = LearningMaterial::findOrFail($id);
-        
-        // Ensure the file exists in storage
-        if (!Storage::disk('public')->exists($material->file_path)) {
-        return back()->with('error', 'File not found on server.');
-    }
     
-    return Storage::disk('public')->download(
-        $material->file_path,
-        $material->file_original_name
-    );
-
+        $fullPath = storage_path('app/public/' . $material->file_path);
+    
+        if (!file_exists($fullPath)) {
+            return back()->with('error', 'File not found on server.');
+        }
+    
+        return response()->file($fullPath, [
+            'Content-Type' => 'application/pdf',
+        ]);
     }
+
 
     /**
      * Delete the material.
