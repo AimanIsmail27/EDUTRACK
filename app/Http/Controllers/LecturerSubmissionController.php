@@ -45,33 +45,24 @@ class LecturerSubmissionController extends Controller
             ->with('success', 'Grade updated successfully.');
     }
 
-    public function download(Assignment $assignment, AssignmentSubmission $submission)
-{
-    $this->authorizeAssignment($assignment);
-    abort_if($submission->assignment_id !== $assignment->id, 404);
+   public function download(Assignment $assignment, AssignmentSubmission $submission)
+    {
+        $this->authorizeAssignment($assignment);
+        abort_if($submission->assignment_id !== $assignment->id, 404);
 
-    // Make sure there is a file
-    if (!$submission->file_path) {
-        return back()->with('error', 'Submission file not found.');
+        if (!$submission->file_path) {
+            abort(404);
+        }
+
+        $path = $submission->file_path;
+        $disk = Storage::disk('private')->exists($path) ? 'private' : (Storage::disk('public')->exists($path) ? 'public' : null);
+        if (!$disk) {
+            abort(404);
+        }
+
+        $filename = basename($path) ?: 'submission.pdf';
+        return Storage::disk($disk)->download($path, $filename);
     }
-
-    $path = $submission->file_path;
-
-    // Determine which disk the file exists on
-    if (Storage::disk('private')->exists($path)) {
-        $disk = 'private';
-    } elseif (Storage::disk('public')->exists($path)) {
-        $disk = 'public';
-    } else {
-        return back()->with('error', 'File not found on server.');
-    }
-
-    // Use the original filename if stored, or fallback
-    $filename = basename($path) ?: 'submission.pdf';
-
-    // Return the file for download
-    return Storage::disk($disk)->download($path, $filename);
-}
 
 
     protected function authorizeAssignment(Assignment $assignment): void
