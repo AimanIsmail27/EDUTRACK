@@ -87,37 +87,119 @@ class CourseController extends Controller
      * Display a specific course
      */
     public function show($code)
-    {
-        $course = Course::with(['participants', 'lecturers', 'coordinator'])->findOrFail($code);
+{
+    // Load everything needed for lecturer view
+    $course = Course::with([
+        'participants',
+        'lecturers',
+        'coordinator',
+        'materials' // 🔴 REQUIRED for Plan & Assessment tab
+    ])->findOrFail($code);
 
-        $courseParticipants = $course->participants->map(function($student) {
-            return [
-                'matric_id' => $student->MatricID,
-                'full_name' => $student->Name,
-                'semester'  => $student->pivot->semester,
-                'year'      => $student->pivot->year,
-            ];
-        });
+    /* ---------------------------------
+       PARTICIPANTS TAB DATA
+    --------------------------------- */
+    $courseParticipants = $course->participants->map(function ($student) {
+        return [
+            'matric_id' => $student->MatricID,
+            'full_name' => $student->Name,
+            'semester'  => $student->pivot->semester,
+            'year'      => $student->pivot->year,
+        ];
+    });
 
-        $studentGrades = $course->participants->map(function($student) {
-            return [
-                'matric_id' => $student->MatricID,
-                'full_name' => $student->Name,
-                'semester'  => $student->pivot->semester,
-                'quiz1'     => $student->grade->q1 ?? 0, 
-                'quiz2'     => $student->grade->q2 ?? 0,
-                'ia'        => $student->grade->ia ?? 0,
-                'gp'        => $student->grade->gp ?? 0,
-                'total'     => ($student->grade->q1 ?? 0) + ($student->grade->q2 ?? 0) + ($student->grade->ia ?? 0) + ($student->grade->gp ?? 0),
-            ];
-        });
+    /* ---------------------------------
+       LECTURER GRADES (REAL DATA)
+       Source: AssignmentSubmission
+    --------------------------------- */
+    $studentGrades = $course->participants->map(function ($student) use ($course) {
 
-        $viewPath = (auth()->user()->role === 'administrator') 
-                    ? 'M2.administrator.viewSpecificCourse' 
-                    : 'M2.lecturer.viewSpecificCourse';
+        // Map student (student table) → user table
+        $studentUser = User::where('matric_id', $student->MatricID)->first();
 
-        return view($viewPath, compact('course', 'courseParticipants', 'studentGrades'));  
-    }
+        // Default grades
+        $grades = [
+            'quiz1' => 0,
+            'quiz2' => 0,
+            'ia'    => 0,
+            'gp'    => 0,
+        ];
+
+        if ($studentUser) {
+            $submissions = AssignmentSubmission::with('assignment')
+                ->where('student_id', $studentUser->id)
+                ->where('status', 'Graded')
+                ->whereHas('assignment', function ($q) use ($course) {
+                    $q->where('course_code', $course->C_Code);
+                })
+                ->get();
+
+            foreach ($submissions as $submission) {
+                $assignment = $submission->assignment;
+
+                if (!$assignment || $assignment->total_marks <= 0) {
+                    continue;
+                }
+
+                $percentage = ($submission->score / $assignment->total_marks) * 100;
+
+                switch (strtolower($assignment->title)) {
+                    case 'quiz 1':
+                    case 'quiz1':
+                        $grades['quiz1'] = round($percentage, 2);
+                        break;
+
+                    case 'quiz 2':
+                    case 'quiz2':
+                        $grades['quiz2'] = round($percentage, 2);
+                        break;
+
+                    case 'individual assignment':
+                    case 'ia':
+                        $grades['ia'] = round($percentage, 2);
+                        break;
+
+                    case 'group project':
+                    case 'gp':
+                        $grades['gp'] = round($percentage, 2);
+                        break;
+                }
+            }
+        }
+
+        // Weightage calculation
+        $total =
+            ($grades['quiz1'] * 0.10) +
+            ($grades['quiz2'] * 0.10) +
+            ($grades['ia']    * 0.30) +
+            ($grades['gp']    * 0.50);
+
+        return [
+            'matric_id' => $student->MatricID,
+            'full_name' => $student->Name,
+            'semester'  => $student->pivot->semester,
+            'quiz1'     => $grades['quiz1'],
+            'quiz2'     => $grades['quiz2'],
+            'ia'        => $grades['ia'],
+            'gp'        => $grades['gp'],
+            'total'     => round($total, 2),
+        ];
+    });
+
+    /* ---------------------------------
+       ROLE-BASED VIEW
+    --------------------------------- */
+    $viewPath = (auth()->user()->role === 'administrator')
+        ? 'M2.administrator.viewSpecificCourse'
+        : 'M2.lecturer.viewSpecificCourse';
+
+    return view($viewPath, compact(
+        'course',
+        'courseParticipants',
+        'studentGrades'
+    ));
+}
+
 
     /**
      * Show form to edit course
