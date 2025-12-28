@@ -35,8 +35,11 @@ class MaterialController extends Controller
                 
                 // Store file in: storage/app/public/materials/{course_code}/week_{number}
                 $path = $file->storeAs(
-                    'public/materials/' . $request->course_code . '/week_' . $request->week_number,
-                    $fileName
+                    'materials/' . $request->course_code . '/week_' . $request->week_number,
+                    $fileName,
+                    'public'
+                );
+
                 );
 
                 // 3. Save to Database
@@ -69,11 +72,15 @@ class MaterialController extends Controller
         $material = LearningMaterial::findOrFail($id);
         
         // Ensure the file exists in storage
-        if (!Storage::exists($material->file_path)) {
-            return back()->with('error', 'File not found on server.');
-        }
+        if (!Storage::disk('public')->exists($material->file_path)) {
+        return back()->with('error', 'File not found on server.');
+    }
+    
+    return Storage::disk('public')->download(
+        $material->file_path,
+        $material->file_original_name
+    );
 
-        return Storage::download($material->file_path, $material->file_original_name);
     }
 
     /**
@@ -84,7 +91,8 @@ class MaterialController extends Controller
         $material = LearningMaterial::findOrFail($id);
 
         // Delete the physical file first
-        Storage::delete($material->file_path);
+        Storage::disk('public')->delete($material->file_path);
+
 
         // Delete the database record
         $material->delete();
