@@ -130,40 +130,66 @@ class StudentAssignmentController extends Controller
     }
 
     public function downloadBrief(Assignment $assignment)
-    {
-        if (!$assignment->attachment_path) {
-            abort(404);
-        }
-
-        $path = $assignment->attachment_path;
-        $disk = Storage::disk('private')->exists($path) ? 'private' : (Storage::disk('public')->exists($path) ? 'public' : null);
-        if (!$disk) {
-            abort(404);
-        }
-
-        $filename = basename($path) ?: 'assignment.pdf';
-        return Storage::disk($disk)->download($path, $filename);
+{
+    if (!$assignment->attachment_path) {
+        abort(404);
     }
 
-    public function downloadSubmission(Assignment $assignment)
-    {
-        $submission = $assignment->submissions()
-            ->where('student_id', Auth::id())
-            ->first();
+    $relativePath = $assignment->attachment_path;
 
-        if (!$submission || !$submission->file_path) {
-            abort(404);
-        }
-
-        $path = $submission->file_path;
-        $disk = Storage::disk('private')->exists($path) ? 'private' : (Storage::disk('public')->exists($path) ? 'public' : null);
-        if (!$disk) {
-            abort(404);
-        }
-
-        $filename = basename($path) ?: 'submission.pdf';
-        return Storage::disk($disk)->download($path, $filename);
+    if (Storage::disk('private')->exists($relativePath)) {
+        $absolutePath = storage_path('app/private/' . $relativePath);
+    } elseif (Storage::disk('public')->exists($relativePath)) {
+        $absolutePath = storage_path('app/public/' . $relativePath);
+    } else {
+        abort(404);
     }
+
+    $filename = basename($relativePath) ?: 'assignment.pdf';
+
+    return response()->streamDownload(function () use ($absolutePath) {
+        $stream = fopen($absolutePath, 'rb');
+        fpassthru($stream);
+        fclose($stream);
+    }, $filename, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="'.$filename.'"',
+    ]);
+}
+
+
+   public function downloadSubmission(Assignment $assignment)
+{
+    $submission = $assignment->submissions()
+        ->where('student_id', Auth::id())
+        ->first();
+
+    if (!$submission || !$submission->file_path) {
+        abort(404);
+    }
+
+    $relativePath = $submission->file_path;
+
+    if (Storage::disk('private')->exists($relativePath)) {
+        $absolutePath = storage_path('app/private/' . $relativePath);
+    } elseif (Storage::disk('public')->exists($relativePath)) {
+        $absolutePath = storage_path('app/public/' . $relativePath);
+    } else {
+        abort(404);
+    }
+
+    $filename = basename($relativePath) ?: 'submission.pdf';
+
+    return response()->streamDownload(function () use ($absolutePath) {
+        $stream = fopen($absolutePath, 'rb');
+        fpassthru($stream);
+        fclose($stream);
+    }, $filename, [
+        'Content-Type' => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="'.$filename.'"',
+    ]);
+}
+
 
     public function calendar()
     {
