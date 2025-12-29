@@ -117,12 +117,20 @@ class CourseController extends Controller
         // Map student (student table) → user table
         $studentUser = User::where('matric_id', $student->MatricID)->first();
 
-        // Default grades
+        // Default weighted grades
         $grades = [
             'quiz1' => 0,
             'quiz2' => 0,
             'ia'    => 0,
             'gp'    => 0,
+        ];
+
+        // Define weights dynamically (percentage of final grade)
+        $weights = [
+            'quiz1' => 10,
+            'quiz2' => 10,
+            'ia'    => 30,
+            'gp'    => 50,
         ];
 
         if ($studentUser) {
@@ -141,38 +149,36 @@ class CourseController extends Controller
                     continue;
                 }
 
-                $percentage = ($submission->score / $assignment->total_marks) * 100;
+                // Ratio of score / total marks
+                $ratio = $submission->score / $assignment->total_marks;
 
+                // Assign weighted score based on assignment type
                 switch (strtolower($assignment->title)) {
                     case 'quiz 1':
                     case 'quiz1':
-                        $grades['quiz1'] = round($percentage, 2);
+                        $grades['quiz1'] = round($ratio * $weights['quiz1'], 2);
                         break;
 
                     case 'quiz 2':
                     case 'quiz2':
-                        $grades['quiz2'] = round($percentage, 2);
+                        $grades['quiz2'] = round($ratio * $weights['quiz2'], 2);
                         break;
 
                     case 'individual assignment':
                     case 'ia':
-                        $grades['ia'] = round($percentage, 2);
+                        $grades['ia'] = round($ratio * $weights['ia'], 2);
                         break;
 
                     case 'group project':
                     case 'gp':
-                        $grades['gp'] = round($percentage, 2);
+                        $grades['gp'] = round($ratio * $weights['gp'], 2);
                         break;
                 }
             }
         }
 
-        // Weightage calculation
-        $total =
-            ($grades['quiz1'] * 0.10) +
-            ($grades['quiz2'] * 0.10) +
-            ($grades['ia']    * 0.30) +
-            ($grades['gp']    * 0.50);
+        // Total is sum of all weighted contributions
+        $total = $grades['quiz1'] + $grades['quiz2'] + $grades['ia'] + $grades['gp'];
 
         return [
             'matric_id' => $student->MatricID,
@@ -199,6 +205,7 @@ class CourseController extends Controller
         'studentGrades'
     ));
 }
+
 
 
     /**
