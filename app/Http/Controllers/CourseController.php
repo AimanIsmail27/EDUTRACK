@@ -96,6 +96,20 @@ class CourseController extends Controller
         'materials' // 🔴 REQUIRED for Plan & Assessment tab
     ])->findOrFail($code);
 
+    // -------------------------------
+    // Authorization check for lecturers
+    // -------------------------------
+    if (auth()->user()->role === 'lecturer') {
+        $lecturerId = auth()->id();
+
+        $isAssigned = $course->lecturers->contains('id', $lecturerId)
+                      || $course->coordinator_id == $lecturerId;
+
+        if (!$isAssigned) {
+            abort(403, 'You are not authorized to view this course.');
+        }
+    }
+
     /* ---------------------------------
        PARTICIPANTS TAB DATA
     --------------------------------- */
