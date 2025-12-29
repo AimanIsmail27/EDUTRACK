@@ -10,12 +10,6 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // 🔹 Optional: clear tables before seeding
-        DB::table('users')->truncate();
-        DB::table('student')->truncate();
-        DB::table('lecturer')->truncate();
-
-        // 🔹 Seed admin user
         DB::table('users')->updateOrInsert(
             ['email' => 'admin@gmail.com'],
             [
